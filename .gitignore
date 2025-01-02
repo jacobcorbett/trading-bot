@@ -1,1 +1,34 @@
-/target
+# macOS generated files
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# macOS Finder related
+Icon?
+
+# macOS resource forks
+._*
+
+# Rust specific
+/target/
+/**/*.rs.bk
+
+# IDE/editor specific files
+.idea/
+*.iml
+.vscode/
+*.sublime-workspace
+*.sublime-project
+
+# Environment files
+.env
+.env.*
+
+# Other backups and temporary files
+*.swp
+*.swo
+*.tmp
+*.log
+
+# Git specific
+*.orig
