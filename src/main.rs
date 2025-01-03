@@ -81,6 +81,11 @@ fn add_stock_to_portfolio(
     return portfolio;
 }
 
+fn remove_stock_from_portfolio(mut portfolio: portfolio, symbol: String) -> portfolio {
+    portfolio.assets.remove(&symbol);
+    portfolio
+}
+
 fn update_cash_balance(mut portfolio: portfolio, update_value: f32) -> portfolio {
     let current_value = portfolio.cash_balance;
     let new_value = current_value + update_value;
@@ -101,8 +106,10 @@ fn main() {
     //     "STOCK: {}, PRICE: ${:?}, Cost to buy {:?} shares = ${:?}",
     //     ticker, price, shares, cost_to_buy_x_shares
     // );
-    main_portfolio = update_cash_balance(main_portfolio, 222.0);
+    main_portfolio = update_cash_balance(main_portfolio, 100.0);
+    main_portfolio = update_cash_balance(main_portfolio, -120.0);
     main_portfolio = add_stock_to_portfolio(main_portfolio, "AAPL".to_string(), 2.0);
+    main_portfolio = remove_stock_from_portfolio(main_portfolio, "AAPL".to_string());
     main_portfolio = add_stock_to_portfolio(main_portfolio, "MSFT".to_string(), 1.0);
     main_portfolio = add_stock_to_portfolio(main_portfolio, "GOOGL".to_string(), 2.0);
     main_portfolio = add_stock_to_portfolio(main_portfolio, "TSLA".to_string(), 3.0);
