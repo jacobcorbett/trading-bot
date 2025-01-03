@@ -71,24 +71,24 @@ fn calculate_portfolio_worth(portfolio: portfolio) -> f32 {
     return total;
 }
 
+fn add_stock_to_portfolio(
+    mut portfolio: portfolio,
+    symbol: String,
+    amount_of_shares: f32,
+) -> portfolio {
+    //println!("Adding, {}: {}, to portfolio", symbol, amount_of_shares);
+    portfolio.assets.insert(symbol, amount_of_shares);
+    return portfolio;
+}
+
+fn update_cash_balance(mut portfolio: portfolio, update_value: f32) -> portfolio {
+    let current_value = portfolio.cash_balance;
+    let new_value = current_value + update_value;
+    portfolio.cash_balance = new_value;
+    return portfolio;
+}
+
 fn main() {
-    // reading API KEY
-
-    // println!("Hello, world!");
-
-    // dotenv().ok(); // Reads the .env file
-    // let api_key = env::var("API_KEY");
-
-    // match api_key {
-    //     Ok(val) => println!("API_KEY: {:?}", val),
-    //     Err(e) => println!("Error API_KEY: {}", e),
-    // }
-    //
-    // let ticker = "AAPL";
-    // let x = get_current_stock_pice(api_key, ticker).unwrap();
-    // println!("STOCK: {}, PRICE: ${:?}", ticker, x)
-    //
-
     let mut main_portfolio = portfolio {
         cash_balance: 0.0,
         assets: HashMap::new(),
@@ -101,17 +101,17 @@ fn main() {
     //     "STOCK: {}, PRICE: ${:?}, Cost to buy {:?} shares = ${:?}",
     //     ticker, price, shares, cost_to_buy_x_shares
     // );
+    main_portfolio = update_cash_balance(main_portfolio, 222.0);
+    main_portfolio = add_stock_to_portfolio(main_portfolio, "AAPL".to_string(), 2.0);
+    main_portfolio = add_stock_to_portfolio(main_portfolio, "MSFT".to_string(), 1.0);
+    main_portfolio = add_stock_to_portfolio(main_portfolio, "GOOGL".to_string(), 2.0);
+    main_portfolio = add_stock_to_portfolio(main_portfolio, "TSLA".to_string(), 3.0);
+    main_portfolio = add_stock_to_portfolio(main_portfolio, "AMZN".to_string(), 4.3);
 
-    main_portfolio.cash_balance = 100.0;
-    main_portfolio.assets.insert("AAPL".to_string(), 2.0);
-    main_portfolio.assets.insert("MSFT".to_string(), 1.5);
-    main_portfolio.assets.insert("GOOGL".to_string(), 3.0);
-    main_portfolio.assets.insert("AMZN".to_string(), 2.5);
-    main_portfolio.assets.insert("TSLA".to_string(), 1.0);
     dbg!(&main_portfolio);
 
-    let x = calculate_portfolio_worth(main_portfolio);
-    dbg!(x);
+    // let x = calculate_portfolio_worth(main_portfolio);
+    // dbg!(x);
 
     // let ticker = "AAPL";
     // let price: f32 = 243.85;
