@@ -1,6 +1,7 @@
 use dotenv::dotenv;
 use reqwest::Error;
 use std::{collections::HashMap, env};
+
 #[derive(Debug)]
 struct portfolio {
     cash_balance: f32,
@@ -129,14 +130,15 @@ fn main() {
     main_portfolio = remove_stock_from_portfolio(main_portfolio, "AAPL".to_string());
     main_portfolio = add_stock_to_portfolio(main_portfolio, "MSFT".to_string(), 1.0);
     main_portfolio = add_stock_to_portfolio(main_portfolio, "GOOGL".to_string(), 2.0);
+    main_portfolio = update_stock_postion(main_portfolio, "GOOGL".to_string(), -2.0);
     main_portfolio = add_stock_to_portfolio(main_portfolio, "TSLA".to_string(), 3.0);
     main_portfolio = add_stock_to_portfolio(main_portfolio, "AMZN".to_string(), 4.3);
     main_portfolio = update_stock_postion(main_portfolio, "AMZN".to_string(), -1.0);
 
     dbg!(&main_portfolio);
 
-    // let x = calculate_portfolio_worth(main_portfolio);
-    // dbg!(x);
+    let x = calculate_portfolio_worth(main_portfolio);
+    dbg!(x);
 
     // let ticker = "AAPL";
     // let price: f32 = 243.85;
