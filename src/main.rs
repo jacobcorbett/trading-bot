@@ -18,8 +18,6 @@ struct trade_position {
     open_price: f32,
     close_price: f32,
     inital_value: f32,
-    // time_open: ?,
-    // time_closed: ?,
 }
 
 // """"
@@ -183,7 +181,9 @@ fn status_of_all_trades(portfolio: portfolio) -> portfolio {
         let current_stock_price = finnhub_get_current_stock_price(&trade.ticker).unwrap();
         println!("Current Price: ${:?}", current_stock_price);
         let profit_or_loss = (current_stock_price - trade.open_price);
-        println!("Profit/Loss : ${:?}", profit_or_loss);
+        println!("Profit/Loss: ${:?}", profit_or_loss);
+        let total_value = current_stock_price * trade.size;
+        println!("Total Value: ${:?}", total_value);
         println!(" ");
     }
     return portfolio;
@@ -203,18 +203,18 @@ fn main() {
     //     "STOCK: {}, PRICE: ${:?}, Cost to buy {:?} shares = ${:?}",
     //     ticker, price, shares, cost_to_buy_x_shares
     // );
-    main_portfolio = update_cash_balance(main_portfolio, 100.0);
-    main_portfolio = update_cash_balance(main_portfolio, -120.0);
-    main_portfolio = add_stock_to_portfolio(main_portfolio, "AAPL".to_string(), 2.0);
-    main_portfolio = remove_stock_from_portfolio(main_portfolio, "AAPL".to_string());
-    main_portfolio = add_stock_to_portfolio(main_portfolio, "MSFT".to_string(), 1.0);
-    main_portfolio = add_stock_to_portfolio(main_portfolio, "GOOGL".to_string(), 2.0);
-    main_portfolio = update_stock_postion(main_portfolio, "GOOGL".to_string(), -2.0);
-    main_portfolio = add_stock_to_portfolio(main_portfolio, "TSLA".to_string(), 3.0);
-    main_portfolio = add_stock_to_portfolio(main_portfolio, "AMZN".to_string(), 4.3);
-    main_portfolio = update_stock_postion(main_portfolio, "AMZN".to_string(), -1.0);
+    // main_portfolio = update_cash_balance(main_portfolio, 100.0);
+    // main_portfolio = update_cash_balance(main_portfolio, -120.0);
+    // main_portfolio = add_stock_to_portfolio(main_portfolio, "AAPL".to_string(), 2.0);
+    // main_portfolio = remove_stock_from_portfolio(main_portfolio, "AAPL".to_string());
+    // main_portfolio = add_stock_to_portfolio(main_portfolio, "MSFT".to_string(), 1.0);
+    // main_portfolio = add_stock_to_portfolio(main_portfolio, "GOOGL".to_string(), 2.0);
+    // main_portfolio = update_stock_postion(main_portfolio, "GOOGL".to_string(), -2.0);
+    // main_portfolio = add_stock_to_portfolio(main_portfolio, "TSLA".to_string(), 3.0);
+    // main_portfolio = add_stock_to_portfolio(main_portfolio, "AMZN".to_string(), 4.3);
+    // main_portfolio = update_stock_postion(main_portfolio, "AMZN".to_string(), -1.0);
 
-    dbg!(&main_portfolio);
+    //dbg!(&main_portfolio);
     // dbg!(calculate_portfolio_worth(main_portfolio));
 
     // let temp = trade_position {
@@ -248,11 +248,37 @@ fn main() {
             println!(" ");
             main_portfolio = status_of_all_trades(main_portfolio);
             println!(" ");
+        } else if command == "o" {
+            println!(" ");
+            println!("OPENING TRADE");
+            //
+            println!("Enter Ticker :");
+            let mut line = String::new();
+            std::io::stdin()
+                .read_line(&mut line)
+                .expect("Failed to read line");
+            let ticker = line.trim();
+            //
+            println!("Enter Number of shares :");
+            let mut line = String::new();
+            std::io::stdin()
+                .read_line(&mut line)
+                .expect("Failed to read line");
+            let number_of_shares = line.trim().parse::<f32>();
+            //
+            let x = open_trade(ticker, number_of_shares.expect("REASON"));
+            main_portfolio.open_trades.push(x);
+        } else if command == "r" {
+            // load in from text file
+        } else if command == "s" {
+            // save sstate to text file
         } else if command == "q" {
             println!("Exiting..");
             break;
         }
     }
+
+    // TODO save trades to .txt so you can open them again
 
     // loop {
     //     let second = time::Duration::from_millis(10000);
