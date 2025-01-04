@@ -203,7 +203,7 @@ fn status_of_all_trades(portfolio: portfolio) -> portfolio {
 
     for trade in &portfolio.open_trades {
         println!("UUID: {}", trade.uuid);
-        println!("Trade: {}", trade.ticker);
+        println!("Ticker: {}", trade.ticker);
         println!("Amount of Shares: {}", trade.size);
         println!("Trade open price: ${}", trade.open_price);
         let current_stock_price = finnhub_get_current_stock_price(&trade.ticker).unwrap();
@@ -236,6 +236,66 @@ fn algo(portfolio: portfolio) -> portfolio {
     return portfolio;
 }
 
+fn open_trade_menu_function(mut portfolio: portfolio) -> portfolio {
+    println!(" ");
+    println!("OPENING TRADE");
+    //
+    println!("Enter Ticker :");
+    let mut line = String::new();
+    std::io::stdin()
+        .read_line(&mut line)
+        .expect("Failed to read line");
+    let ticker = line.trim();
+    //
+    println!("Enter Number of shares :");
+    let mut line = String::new();
+    std::io::stdin()
+        .read_line(&mut line)
+        .expect("Failed to read line");
+    let number_of_shares = line.trim().parse::<f32>();
+    //
+    let x = open_trade(ticker, number_of_shares.expect("REASON"));
+    portfolio.open_trades.push(x);
+    portfolio
+    //
+}
+
+fn status_of_all_trades_menu_function(mut portfolio: portfolio) -> portfolio {
+    println!(" ");
+    portfolio = status_of_all_trades(portfolio);
+    println!(" ");
+    portfolio
+}
+
+fn algorithm_menu_function(mut portfolio: portfolio) -> portfolio {
+    portfolio = algo(portfolio);
+    portfolio
+}
+
+fn closeing_trade_menu_function(mut portfolio: portfolio) -> portfolio {
+    println!("closing trade");
+    //
+    println!("Enter uuid of trade :");
+    let mut line = String::new();
+    std::io::stdin()
+        .read_line(&mut line)
+        .expect("Failed to read line");
+    let trade_uuid = line.trim().parse::<Uuid>();
+
+    // validate uuid
+    match &trade_uuid {
+        Ok(uuid) => println!("Valid UUID: {}", uuid),
+        Err(e) => {
+            println!("Invalid UUID: {}", e);
+            return portfolio;
+        }
+    }
+
+    portfolio = close_trade(portfolio, trade_uuid.expect("REASON"));
+
+    portfolio
+}
+
 fn main() {
     let mut main_portfolio = portfolio {
         cash_balance: 0.0,
@@ -246,49 +306,11 @@ fn main() {
     let uuid = Uuid::new_v4();
     dbg!(uuid);
 
-    // let cost_to_buy_x_shares: f32 = price * shares;
-
-    // println!("STOCK: {}, PRICE: ${:?}", ticker, price);
-    // println!(
-    //     "STOCK: {}, PRICE: ${:?}, Cost to buy {:?} shares = ${:?}",
-    //     ticker, price, shares, cost_to_buy_x_shares
-    // );
-    // main_portfolio = update_cash_balance(main_portfolio, 100.0);
-    // main_portfolio = update_cash_balance(main_portfolio, -120.0);
-    // main_portfolio = add_stock_to_portfolio(main_portfolio, "AAPL".to_string(), 2.0);
-    // main_portfolio = remove_stock_from_portfolio(main_portfolio, "AAPL".to_string());
-    // main_portfolio = add_stock_to_portfolio(main_portfolio, "MSFT".to_string(), 1.0);
-    // main_portfolio = add_stock_to_portfolio(main_portfolio, "GOOGL".to_string(), 2.0);
-    // main_portfolio = update_stock_postion(main_portfolio, "GOOGL".to_string(), -2.0);
-    // main_portfolio = add_stock_to_portfolio(main_portfolio, "TSLA".to_string(), 3.0);
-    // main_portfolio = add_stock_to_portfolio(main_portfolio, "AMZN".to_string(), 4.3);
-    // main_portfolio = update_stock_postion(main_portfolio, "AMZN".to_string(), -1.0);
-
-    //dbg!(&main_portfolio);
-    // dbg!(calculate_portfolio_worth(main_portfolio));
-
-    // let temp = trade_position {
-    //     ticker: "AAPL".to_string(),
-    //     open_price: -100000000.0,
-    //     close_price: -100000000.0,
-    // };
-
-    // dbg!(temp);
-    //
-
-    // let x = open_trade("GME", 100000.0);
-    // main_portfolio.open_trades.push(x);
-    // let x = open_trade("AAPL", 100000.0);
-    // main_portfolio.open_trades.push(x);
-    // let x = open_trade("TSLA", 100000.0);
-    // main_portfolio.open_trades.push(x);
-
-    //dbg!(&main_portfolio);
-
     loop {
         let mut line = String::new();
         println!("Commands:\ns: status of all trades\no: open new single trade\nc: close single trade\na: algorithm mode\nq: quit\n");
         println!("Enter command :");
+
         std::io::stdin()
             .read_line(&mut line)
             .expect("Failed to read line");
@@ -296,42 +318,13 @@ fn main() {
         let command = line.trim();
 
         if command == "s" {
-            println!(" ");
-            main_portfolio = status_of_all_trades(main_portfolio);
-            println!(" ");
+            main_portfolio = status_of_all_trades_menu_function(main_portfolio);
         } else if command == "o" {
-            println!(" ");
-            println!("OPENING TRADE");
-            //
-            println!("Enter Ticker :");
-            let mut line = String::new();
-            std::io::stdin()
-                .read_line(&mut line)
-                .expect("Failed to read line");
-            let ticker = line.trim();
-            //
-            println!("Enter Number of shares :");
-            let mut line = String::new();
-            std::io::stdin()
-                .read_line(&mut line)
-                .expect("Failed to read line");
-            let number_of_shares = line.trim().parse::<f32>();
-            //
-            let x = open_trade(ticker, number_of_shares.expect("REASON"));
-            main_portfolio.open_trades.push(x);
-            //
+            main_portfolio = open_trade_menu_function(main_portfolio);
         } else if command == "c" {
-            println!("closing trade");
-            //
-            println!("Enter uuid of trade :");
-            let mut line = String::new();
-            std::io::stdin()
-                .read_line(&mut line)
-                .expect("Failed to read line");
-            let trade_uuid = line.trim().parse::<Uuid>();
-            main_portfolio = close_trade(main_portfolio, trade_uuid.expect("REASON"));
+            main_portfolio = closeing_trade_menu_function(main_portfolio);
         } else if command == "a" {
-            main_portfolio = algo(main_portfolio);
+            main_portfolio = algorithm_menu_function(main_portfolio);
         } else if command == "r" {
             // load in from text file
         } else if command == "s" {
@@ -341,44 +334,8 @@ fn main() {
             break;
         }
     }
-
-    // TODO save trades to .txt so you can open them again
-    // auto caps the tickers
-    // try getting auto buy and sell working
-
-    // loop {
-    //     let second = time::Duration::from_millis(10000);
-    //     thread::sleep(second);
-
-    //     println!(" ");
-    //     println!(
-    //         "Trade open price: ${}",
-    //         main_portfolio.open_trades[0].open_price
-    //     );
-    //     let c_price = finnhub_get_current_stock_price(ticker).unwrap();
-    //     println!("Current Price: ${:?}", c_price);
-
-    //     let profit_loss = (c_price - main_portfolio.open_trades[0].open_price);
-    //     println!("Profit/Loss : ${:?}", profit_loss);
-    // }
-
-    // loop {
-    //     let second = time::Duration::from_millis(10000);
-    //     thread::sleep(second);
-
-    //     let ticker = "TSLA";
-    //     let x = finnhub_get_current_stock_price(ticker).unwrap();
-
-    //     println!("{}: ${:?}", ticker, x);
-    // }
-
-    // let ticker = "AAPL";
-    // let price: f32 = 243.85;
-    // let shares: f32 = 1.0;
-
-    // if main_portfolio.cash_balance > price * shares {
-    //     println!("you can buy")
-    // } else {
-    //     println!("you cant affort it ")
-    // }
 }
+
+// todo, validate stock inputs
+// clear screen
+//
