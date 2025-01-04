@@ -58,42 +58,6 @@ async fn finnhub_get_current_stock_price(ticker: &str) -> Result<f32, Error> {
     Ok(temp_f32)
 }
 
-#[tokio::main] // DEAD
-async fn get_current_stock_price(ticker: &str) -> Result<f32, Error> {
-    dotenv().ok(); // Reads the .env file
-    let api_key = match env::var("ALPHA_API_KEY") {
-        Ok(key) => key, // If the environment variable exists, use its value
-        Err(_) => {
-            eprintln!("Error: API_KEY environment variable not found.");
-            std::process::exit(1); // Exit the program with a non-zero status code
-        }
-    };
-    // let url = "https://www.alphavantage.co/query?function=TIME_SERIES_INTRADAY&extended_hours=true&symbol=TSLA&interval=1min&apikey=".to_owned() + &api_key;
-
-    let url = "https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=".to_owned()
-        + ticker
-        + "&apikey="
-        + &api_key;
-
-    // let url = "https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=IBM&apikey=demo";
-
-    let response = reqwest::get(url).await?.json::<serde_json::Value>().await?;
-    println!("{:#?}", response["Global Quote"]["05. price"]);
-    let price = response["Global Quote"]["05. price"].to_string();
-    // let float_price: f32 = price.parse().unwrap();
-    let mut temp: Vec<char> = price.chars().collect();
-
-    temp.remove(0); // removes first "
-    temp.pop(); // removes last "
-
-    let temp_string: String = temp.iter().collect();
-    let temp_f32: f32 = temp_string.parse().expect("Failed to parse f32");
-
-    dbg!(temp_f32);
-
-    Ok(temp_f32)
-}
-
 #[tokio::main]
 async fn check_vaild_ticker(ticker: &str) -> Result<bool, Error> {
     dotenv().ok(); // Reads the .env file
@@ -133,71 +97,11 @@ async fn check_vaild_ticker(ticker: &str) -> Result<bool, Error> {
     Ok(valid)
 }
 
-fn calculate_portfolio_worth(portfolio: portfolio) -> f32 {
-    let mut total: f32 = 0.0;
-    for stock in portfolio.assets {
-        let ticker = stock.0;
-        let amount_shares = stock.1;
-        let price_per_share = finnhub_get_current_stock_price(ticker.as_str());
-
-        match price_per_share {
-            Ok(value) => {
-                let share_worth = amount_shares * value;
-                println!(
-                    "ticker: {}, shares: {}, price per share: {:?}, total: {:?}",
-                    ticker,
-                    amount_shares,
-                    price_per_share.unwrap(),
-                    share_worth
-                );
-                total += share_worth;
-            }
-            Err(err) => {
-                println!("An error occurred: {:?}", err);
-            }
-        }
-    }
-
-    return total;
-}
-
-fn add_stock_to_portfolio(
-    mut portfolio: portfolio,
-    symbol: String,
-    amount_of_shares: f32,
-) -> portfolio {
-    //println!("Adding, {}: {}, to portfolio", symbol, amount_of_shares);
-    portfolio.assets.insert(symbol, amount_of_shares);
-    return portfolio;
-}
-
-fn remove_stock_from_portfolio(mut portfolio: portfolio, symbol: String) -> portfolio {
-    portfolio.assets.remove(&symbol);
-    portfolio
-}
-
 fn update_cash_balance(mut portfolio: portfolio, update_value: f32) -> portfolio {
     let current_value = portfolio.cash_balance;
     let new_value = current_value + update_value;
     portfolio.cash_balance = new_value;
     return portfolio;
-}
-
-fn update_stock_postion(mut portfolio: portfolio, symbol: String, update_value: f32) -> portfolio {
-    // let current_value = portfolio.cash_balance;
-    // let new_value = current_value + update_value;
-
-    match portfolio.assets.get_mut(&symbol) {
-        Some(value) => {
-            let new_value = *value + update_value;
-            *value = new_value
-        }
-        None => {
-            println!("NONE")
-        }
-    }
-
-    portfolio
 }
 
 fn open_trade(mut portfolio: portfolio, ticker: &str, amount_of_shares: f32) -> portfolio {
@@ -269,19 +173,23 @@ fn status_of_all_trades(portfolio: portfolio) -> portfolio {
 
 fn algo(portfolio: portfolio) -> portfolio {
     println!("!ALGO MODE!");
-    loop {
-        let ten_secs = time::Duration::from_millis(10000);
-        thread::sleep(ten_secs);
-        println!("checking");
-        for trade in &portfolio.open_trades {
-            let current_stock_price = finnhub_get_current_stock_price(&trade.ticker).unwrap();
-            let profit_or_loss = (current_stock_price - trade.open_price);
+    println!("Starting with ${}", portfolio.cash_balance);
 
-            if profit_or_loss > 1.0 {
-                println!("MADE $1 on {:?}", trade)
-            }
-        }
-    }
+    println!("NO ALGORITHM IMPLITMENTED YET");
+
+    // loop {
+    //     println!("checking");
+    //     for trade in &portfolio.open_trades {
+    //         let current_stock_price = finnhub_get_current_stock_price(&trade.ticker).unwrap();
+    //         let profit_or_loss = (current_stock_price - trade.open_price);
+
+    //         if profit_or_loss > 1.0 {
+    //             println!("MADE $1 on {:?}", trade)
+    //         }
+    //     }
+    //     let ten_secs = time::Duration::from_millis(10000);
+    //     thread::sleep(ten_secs);
+    // }
 
     return portfolio;
 }
@@ -371,7 +279,7 @@ fn add_cash_menu_function(mut portfolio: portfolio) -> portfolio {
         .expect("Failed to read line");
     let change_value = line.trim().parse::<f32>();
 
-    portfolio.cash_balance += change_value.expect("REASON");
+    portfolio = update_cash_balance(portfolio, change_value.expect("REASON"));
     portfolio
 }
 
