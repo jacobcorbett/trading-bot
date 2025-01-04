@@ -3,6 +3,7 @@ use reqwest::Error;
 use std::collections::hash_set::Difference;
 use std::{collections::HashMap, env};
 use std::{thread, time};
+use uuid::Uuid;
 
 #[derive(Debug)]
 struct portfolio {
@@ -13,6 +14,7 @@ struct portfolio {
 
 #[derive(Debug)]
 struct trade_position {
+    uuid: Uuid,
     ticker: String,
     size: f32,
     open_price: f32,
@@ -159,11 +161,13 @@ fn update_stock_postion(mut portfolio: portfolio, symbol: String, update_value: 
 }
 
 fn open_trade(ticker: &str, amount_of_shares: f32) -> trade_position {
+    let uuid = Uuid::new_v4();
     let price_per_share = finnhub_get_current_stock_price(ticker).unwrap();
 
     let total_value = price_per_share * amount_of_shares;
 
     let temp = trade_position {
+        uuid: uuid,
         ticker: ticker.to_string(),
         size: amount_of_shares,
         open_price: price_per_share,
@@ -173,8 +177,32 @@ fn open_trade(ticker: &str, amount_of_shares: f32) -> trade_position {
     temp
 }
 
+fn close_trade(mut portfolio: portfolio, trade_uuid: Uuid) -> portfolio {
+    let mut index_to_remove = 1000000;
+
+    for i in 0..portfolio.open_trades.len() {
+        if portfolio.open_trades[i].uuid == trade_uuid {
+            index_to_remove = i;
+        }
+    }
+
+    if index_to_remove == 1000000 {
+        println!("No matching open trades");
+        return portfolio;
+    } else {
+        portfolio.open_trades.remove(index_to_remove);
+    }
+    portfolio
+}
+
 fn status_of_all_trades(portfolio: portfolio) -> portfolio {
+    if portfolio.open_trades.len() == 0 {
+        println!("No Open Trades");
+        return portfolio;
+    }
+
     for trade in &portfolio.open_trades {
+        println!("UUID: {}", trade.uuid);
         println!("Trade: {}", trade.ticker);
         println!("Amount of Shares: {}", trade.size);
         println!("Trade open price: ${}", trade.open_price);
@@ -189,12 +217,34 @@ fn status_of_all_trades(portfolio: portfolio) -> portfolio {
     return portfolio;
 }
 
+fn algo(portfolio: portfolio) -> portfolio {
+    println!("!ALGO MODE!");
+    loop {
+        let ten_secs = time::Duration::from_millis(10000);
+        thread::sleep(ten_secs);
+        println!("checking");
+        for trade in &portfolio.open_trades {
+            let current_stock_price = finnhub_get_current_stock_price(&trade.ticker).unwrap();
+            let profit_or_loss = (current_stock_price - trade.open_price);
+
+            if profit_or_loss > 1.0 {
+                println!("MADE $1 on {:?}", trade)
+            }
+        }
+    }
+
+    return portfolio;
+}
+
 fn main() {
     let mut main_portfolio = portfolio {
         cash_balance: 0.0,
         assets: HashMap::new(),
         open_trades: Vec::new(),
     };
+
+    let uuid = Uuid::new_v4();
+    dbg!(uuid);
 
     // let cost_to_buy_x_shares: f32 = price * shares;
 
@@ -226,17 +276,18 @@ fn main() {
     // dbg!(temp);
     //
 
-    let x = open_trade("GME", 100.0);
-    main_portfolio.open_trades.push(x);
-    let x = open_trade("AAPL", 10.0);
-    main_portfolio.open_trades.push(x);
-    let x = open_trade("TSLA", 100.0);
-    main_portfolio.open_trades.push(x);
+    // let x = open_trade("GME", 100000.0);
+    // main_portfolio.open_trades.push(x);
+    // let x = open_trade("AAPL", 100000.0);
+    // main_portfolio.open_trades.push(x);
+    // let x = open_trade("TSLA", 100000.0);
+    // main_portfolio.open_trades.push(x);
 
     //dbg!(&main_portfolio);
 
     loop {
         let mut line = String::new();
+        println!("Commands:\ns: status of all trades\no: open new single trade\nc: close single trade\na: algorithm mode\nq: quit\n");
         println!("Enter command :");
         std::io::stdin()
             .read_line(&mut line)
@@ -244,7 +295,7 @@ fn main() {
 
         let command = line.trim();
 
-        if command == "c" {
+        if command == "s" {
             println!(" ");
             main_portfolio = status_of_all_trades(main_portfolio);
             println!(" ");
@@ -268,6 +319,19 @@ fn main() {
             //
             let x = open_trade(ticker, number_of_shares.expect("REASON"));
             main_portfolio.open_trades.push(x);
+            //
+        } else if command == "c" {
+            println!("closing trade");
+            //
+            println!("Enter uuid of trade :");
+            let mut line = String::new();
+            std::io::stdin()
+                .read_line(&mut line)
+                .expect("Failed to read line");
+            let trade_uuid = line.trim().parse::<Uuid>();
+            main_portfolio = close_trade(main_portfolio, trade_uuid.expect("REASON"));
+        } else if command == "a" {
+            main_portfolio = algo(main_portfolio);
         } else if command == "r" {
             // load in from text file
         } else if command == "s" {
@@ -279,6 +343,8 @@ fn main() {
     }
 
     // TODO save trades to .txt so you can open them again
+    // auto caps the tickers
+    // try getting auto buy and sell working
 
     // loop {
     //     let second = time::Duration::from_millis(10000);
