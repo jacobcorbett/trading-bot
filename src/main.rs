@@ -111,32 +111,24 @@ async fn check_vaild_ticker(ticker: &str) -> Result<bool, Error> {
         + &api_key;
 
     let response = reqwest::get(url).await?.json::<serde_json::Value>().await?;
-    // println!("{:#?}", response);
 
     let mut length = 0;
     if let Some(value) = response["count"].as_i64() {
         length = value as i32;
-        // println!("The count is: {}", length);
     } else {
-        //   println!("The 'count' field is not a valid number.");
-        //Err("The 'count' field is not a valid number.");
+        // handle error
     }
 
     let mut valid = false;
 
     for i in 0..length {
         let current_ticker = &response["result"][i as usize]["displaySymbol"];
-        // dbg!(current_ticker);
 
         if current_ticker == ticker {
             valid = true;
-            //println!("vaild");
+            break;
         }
     }
-
-    // for potention_result in response {
-    //     dbg!(potention_result["Object"]);
-    // }
 
     Ok(valid)
 }
@@ -208,11 +200,16 @@ fn update_stock_postion(mut portfolio: portfolio, symbol: String, update_value: 
     portfolio
 }
 
-fn open_trade(ticker: &str, amount_of_shares: f32) -> trade_position {
+fn open_trade(mut portfolio: portfolio, ticker: &str, amount_of_shares: f32) -> portfolio {
     let uuid = Uuid::new_v4();
     let price_per_share = finnhub_get_current_stock_price(ticker).unwrap();
 
     let total_value = price_per_share * amount_of_shares;
+
+    if total_value > portfolio.cash_balance {
+        println!("not enough money");
+        return portfolio;
+    }
 
     let temp = trade_position {
         uuid: uuid,
@@ -222,7 +219,11 @@ fn open_trade(ticker: &str, amount_of_shares: f32) -> trade_position {
         close_price: -1.0,
         inital_value: total_value,
     };
-    temp
+
+    portfolio.open_trades.push(temp);
+    portfolio.cash_balance -= total_value;
+
+    portfolio
 }
 
 fn close_trade(mut portfolio: portfolio, trade_uuid: Uuid) -> portfolio {
@@ -245,10 +246,11 @@ fn close_trade(mut portfolio: portfolio, trade_uuid: Uuid) -> portfolio {
 
 fn status_of_all_trades(portfolio: portfolio) -> portfolio {
     if portfolio.open_trades.len() == 0 {
+        println!("Cash Balance: ${}", portfolio.cash_balance);
         println!("No Open Trades");
         return portfolio;
     }
-
+    println!("Cash Balance: ${}\n", portfolio.cash_balance);
     for trade in &portfolio.open_trades {
         println!("UUID: {}", trade.uuid);
         println!("Ticker: {}", trade.ticker);
@@ -320,8 +322,7 @@ fn open_trade_menu_function(mut portfolio: portfolio) -> portfolio {
         .expect("Failed to read line");
     let number_of_shares = line.trim().parse::<f32>();
     //
-    let x = open_trade(ticker, number_of_shares.expect("REASON"));
-    portfolio.open_trades.push(x);
+    portfolio = open_trade(portfolio, ticker, number_of_shares.expect("REASON"));
     portfolio
     //
 }
@@ -362,6 +363,18 @@ fn closeing_trade_menu_function(mut portfolio: portfolio) -> portfolio {
     portfolio
 }
 
+fn add_cash_menu_function(mut portfolio: portfolio) -> portfolio {
+    println!("Enter $ amount to change cash balance by: ");
+    let mut line = String::new();
+    std::io::stdin()
+        .read_line(&mut line)
+        .expect("Failed to read line");
+    let change_value = line.trim().parse::<f32>();
+
+    portfolio.cash_balance += change_value.expect("REASON");
+    portfolio
+}
+
 fn main() {
     let mut main_portfolio = portfolio {
         cash_balance: 0.0,
@@ -369,12 +382,9 @@ fn main() {
         open_trades: Vec::new(),
     };
 
-    let uuid = Uuid::new_v4();
-    dbg!(uuid);
-
     loop {
         let mut line = String::new();
-        println!("Commands:\ns: status of all trades\no: open new single trade\nc: close single trade\na: algorithm mode\nq: quit\n");
+        println!("Commands:\ns: status of all trades\no: open new single trade\nc: close single trade\na: algorithm mode\nm: add cash\nq: quit\n");
         println!("Enter command :");
 
         std::io::stdin()
@@ -391,6 +401,8 @@ fn main() {
             main_portfolio = closeing_trade_menu_function(main_portfolio);
         } else if command == "a" {
             main_portfolio = algorithm_menu_function(main_portfolio);
+        } else if command == "m" {
+            main_portfolio = add_cash_menu_function(main_portfolio);
         } else if command == "r" {
             // load in from text file
         } else if command == "s" {
