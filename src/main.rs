@@ -1,6 +1,7 @@
 use dotenv::dotenv;
 use reqwest::Error;
 use std::collections::hash_set::Difference;
+use std::process::exit;
 use std::{collections::HashMap, env};
 use std::{thread, time};
 use uuid::Uuid;
@@ -91,6 +92,53 @@ async fn get_current_stock_price(ticker: &str) -> Result<f32, Error> {
     dbg!(temp_f32);
 
     Ok(temp_f32)
+}
+
+#[tokio::main]
+async fn check_vaild_ticker(ticker: &str) -> Result<bool, Error> {
+    dotenv().ok(); // Reads the .env file
+    let api_key = match env::var("FINHUB_API_KEY") {
+        Ok(key) => key, // If the environment variable exists, use its value
+        Err(_) => {
+            eprintln!("Error: API_KEY environment variable not found.");
+            std::process::exit(1); // Exit the program with a non-zero status code
+        }
+    };
+
+    let url = "https://finnhub.io/api/v1/search?q=".to_owned()
+        + ticker
+        + "&exchange=US&token="
+        + &api_key;
+
+    let response = reqwest::get(url).await?.json::<serde_json::Value>().await?;
+    // println!("{:#?}", response);
+
+    let mut length = 0;
+    if let Some(value) = response["count"].as_i64() {
+        length = value as i32;
+        // println!("The count is: {}", length);
+    } else {
+        //   println!("The 'count' field is not a valid number.");
+        //Err("The 'count' field is not a valid number.");
+    }
+
+    let mut valid = false;
+
+    for i in 0..length {
+        let current_ticker = &response["result"][i as usize]["displaySymbol"];
+        // dbg!(current_ticker);
+
+        if current_ticker == ticker {
+            valid = true;
+            //println!("vaild");
+        }
+    }
+
+    // for potention_result in response {
+    //     dbg!(potention_result["Object"]);
+    // }
+
+    Ok(valid)
 }
 
 fn calculate_portfolio_worth(portfolio: portfolio) -> f32 {
@@ -246,6 +294,24 @@ fn open_trade_menu_function(mut portfolio: portfolio) -> portfolio {
         .read_line(&mut line)
         .expect("Failed to read line");
     let ticker = line.trim();
+
+    //validate ticker
+    let vaild_or_not = check_vaild_ticker(ticker);
+
+    match vaild_or_not {
+        Ok(is_valid) => {
+            if is_valid {
+                println!("ticker is valid")
+            } else {
+                println!("invalid ticker");
+                return portfolio;
+            }
+        }
+        Err(e) => {
+            println!("An error occurred: {}", e);
+        }
+    }
+
     //
     println!("Enter Number of shares :");
     let mut line = String::new();
