@@ -162,8 +162,11 @@ fn status_of_all_trades(portfolio: portfolio) -> portfolio {
         println!("Trade open price: ${}", trade.open_price);
         let current_stock_price = finnhub_get_current_stock_price(&trade.ticker).unwrap();
         println!("Current Price: ${:?}", current_stock_price);
-        let profit_or_loss = (current_stock_price - trade.open_price);
+        let profit_or_loss = current_stock_price - trade.open_price;
         println!("Profit/Loss: ${:?}", profit_or_loss);
+        let percetange_differance = (current_stock_price - trade.open_price) / 100.0;
+        println!("Percentage Gain/Loss: {:?}%", percetange_differance);
+
         let total_value = current_stock_price * trade.size;
         println!("Total Value: ${:?}", total_value);
         println!(" ");
@@ -209,7 +212,30 @@ fn percentage_change_trigger_algo(mut portfolio: portfolio) -> portfolio {
                 let number_of_shares: f32 = 1.0;
                 portfolio = open_trade(portfolio, stock.0, number_of_shares);
             }
+
+            let mut trades_to_close: Vec<Uuid> = Vec::new();
+
+            // loops over every open trade
+            // if the current symbol we grabbing price from is in a open trade
+            // check the status of the trade eg up 10%
+            // if up 10% we want to close the trade
+            for open_trade in &portfolio.open_trades {
+                if stock.0.to_string() == open_trade.ticker {
+                    let trade_percentage_gain_or_loss =
+                        (current_stock_price - open_trade.inital_value) / 100.0;
+
+                    if trade_percentage_gain_or_loss > 10.0 {
+                        trades_to_close.push(open_trade.uuid)
+                    }
+                }
+            }
+
+            // closes trades found ealier
+            for uuid in trades_to_close {
+                portfolio = close_trade(portfolio, uuid)
+            }
         }
+
         println!(" ");
         portfolio = status_of_all_trades(portfolio);
         println!(" ");
@@ -217,8 +243,6 @@ fn percentage_change_trigger_algo(mut portfolio: portfolio) -> portfolio {
         let ten_secs = time::Duration::from_millis(10000);
         thread::sleep(ten_secs);
     }
-
-    return portfolio;
 }
 
 fn open_trade_menu_function(mut portfolio: portfolio) -> portfolio {
