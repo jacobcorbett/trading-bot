@@ -42,7 +42,7 @@ async fn finnhub_get_current_stock_price(ticker: &str) -> Result<f32, Error> {
     // let url = "https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=IBM&apikey=demo";
 
     let response = reqwest::get(url).await?.json::<serde_json::Value>().await?;
-    //println!("{:#?}", response["c"]);
+    //println!("{:#?}", response);
     let price = response["c"].to_string();
     // let float_price: f32 = price.parse().unwrap();
     let temp: Vec<char> = price.chars().collect();
@@ -171,25 +171,52 @@ fn status_of_all_trades(portfolio: portfolio) -> portfolio {
     return portfolio;
 }
 
-fn algo(portfolio: portfolio) -> portfolio {
-    println!("!ALGO MODE!");
+fn percentage_change_trigger_algo(mut portfolio: portfolio) -> portfolio {
+    let tickers_to_watch: Vec<&str> = vec![
+        "PLTR", // Palantir Technologies
+        "TSLA", // Tesla Inc.
+        "NVDA", // NVIDIA Corporation
+        "GME",  // GameStop Corp.
+        "LCID", // Lucid Group Inc.
+    ];
+
+    println!("!ALGO MODE (Percentage Change Trigger)!");
     println!("Starting with ${}", portfolio.cash_balance);
+    println!("tickers watching: {:?}", tickers_to_watch);
 
-    println!("NO ALGORITHM IMPLITMENTED YET");
+    let mut inital_price_for_ticker: HashMap<&str, f32> = HashMap::new();
 
-    // loop {
-    //     println!("checking");
-    //     for trade in &portfolio.open_trades {
-    //         let current_stock_price = finnhub_get_current_stock_price(&trade.ticker).unwrap();
-    //         let profit_or_loss = (current_stock_price - trade.open_price);
+    for ticker in tickers_to_watch {
+        let price_per_share = finnhub_get_current_stock_price(ticker).unwrap();
+        inital_price_for_ticker.insert(ticker, price_per_share);
+    }
 
-    //         if profit_or_loss > 1.0 {
-    //             println!("MADE $1 on {:?}", trade)
-    //         }
-    //     }
-    //     let ten_secs = time::Duration::from_millis(10000);
-    //     thread::sleep(ten_secs);
-    // }
+    loop {
+        for stock in &inital_price_for_ticker {
+            let current_stock_price = finnhub_get_current_stock_price(stock.0).unwrap();
+
+            //compare current price to inital price to see % difference
+            // formula, (current_price - inital_price) /100 (allows for negatives)
+
+            let percetange_differance = (current_stock_price - stock.1) / 100.0;
+
+            println!(
+                "stock: {}\ninital price: ${}\ncurrent price: ${}\ndifference: {}%",
+                stock.0, stock.1, current_stock_price, percetange_differance
+            );
+
+            if percetange_differance > 2.0 {
+                let number_of_shares: f32 = 1.0;
+                portfolio = open_trade(portfolio, stock.0, number_of_shares);
+            }
+        }
+        println!(" ");
+        portfolio = status_of_all_trades(portfolio);
+        println!(" ");
+
+        let ten_secs = time::Duration::from_millis(10000);
+        thread::sleep(ten_secs);
+    }
 
     return portfolio;
 }
@@ -243,7 +270,7 @@ fn status_of_all_trades_menu_function(mut portfolio: portfolio) -> portfolio {
 }
 
 fn algorithm_menu_function(mut portfolio: portfolio) -> portfolio {
-    portfolio = algo(portfolio);
+    portfolio = percentage_change_trigger_algo(portfolio);
     portfolio
 }
 
@@ -298,7 +325,7 @@ async fn is_market_open() -> Result<bool, Error> {
         "https://finnhub.io/api/v1/stock/market-status?exchange=US&token=".to_owned() + &api_key;
 
     let response = reqwest::get(url).await?.json::<serde_json::Value>().await?;
-    dbg!(&response["isOpen"].as_bool());
+    // dbg!(&response["isOpen"].as_bool());
 
     let mut open_or_closed: bool = false;
     if let Some(value) = response["isOpen"].as_bool() {
