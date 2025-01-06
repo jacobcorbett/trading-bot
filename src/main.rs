@@ -262,6 +262,27 @@ fn percentage_change_trigger_algo(mut portfolio: portfolio) -> portfolio {
     }
 }
 
+fn moving_average_crossover_algo(mut portfolio: portfolio) -> portfolio {
+    let tickers_to_watch: Vec<&str> = vec![
+        "PLTR", // Palantir Technologies
+        "TSLA", // Tesla Inc.
+        "NVDA", // NVIDIA Corporation
+        "GME",  // GameStop Corp.
+        "LCID", // Lucid Group Inc.
+    ];
+
+    portfolio.cash_balance = 1000.0;
+    println!("!ALGO MODE (Moving Average Crossover)!");
+    println!("Starting with ${}", portfolio.cash_balance);
+    println!("tickers watching: {:?}", tickers_to_watch);
+
+    let mut ticker_info: HashMap<&str, Vec<f32>> = HashMap::new();
+
+    // TODO GRAB HISTORICAL DATA FROM alphavantage
+
+    portfolio
+}
+
 fn open_trade_menu_function(mut portfolio: portfolio) -> portfolio {
     println!(" ");
     println!("OPENING TRADE");
@@ -311,7 +332,21 @@ fn status_of_all_trades_menu_function(mut portfolio: portfolio) -> portfolio {
 }
 
 fn algorithm_menu_function(mut portfolio: portfolio) -> portfolio {
-    portfolio = percentage_change_trigger_algo(portfolio);
+    println!("\nCommands:\np: Percentage Change Trigger Algorithm\na: Moving Average Crossover Algorithm");
+
+    let mut line = String::new();
+    println!("\nEnter command :");
+    std::io::stdin()
+        .read_line(&mut line)
+        .expect("Failed to read line");
+    let command = line.trim();
+
+    if command == "p" {
+        portfolio = percentage_change_trigger_algo(portfolio);
+    } else if command == "a" {
+        portfolio = moving_average_crossover_algo(portfolio);
+    }
+
     portfolio
 }
 
