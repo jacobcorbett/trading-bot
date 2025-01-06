@@ -1,6 +1,8 @@
 use dotenv::dotenv;
-use reqwest::Error;
+use reqwest::{Error, Response};
+use serde_json::Value;
 use std::collections::hash_set::Difference;
+use std::f64::consts::PI;
 use std::process::exit;
 use std::{collections::HashMap, env};
 use std::{thread, time};
@@ -130,6 +132,47 @@ fn open_trade(mut portfolio: portfolio, ticker: &str, amount_of_shares: f32) -> 
     portfolio
 }
 
+#[tokio::main]
+async fn get_last_100_days_price_data(ticker: &str) -> Result<Vec<f32>, Error> {
+    dotenv().ok(); // Reads the .env file
+    let api_key = match env::var("ALPHA_API_KEY") {
+        Ok(key) => key, // If the environment variable exists, use its value
+        Err(_) => {
+            eprintln!("Error: API_KEY environment variable not found.");
+            std::process::exit(1); // Exit the program with a non-zero status code
+        }
+    };
+    // let url = "https://www.alphavantage.co/query?function=TIME_SERIES_INTRADAY&extended_hours=true&symbol=TSLA&interval=1min&apikey=".to_owned() + &api_key;
+    let url = "https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=IBM&apikey=demo";
+
+    // let url = "https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=".to_owned()
+    //     + ticker
+    //     + "&apikey="
+    //     + &api_key;
+
+    // let url = "https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=IBM&apikey=demo";
+
+    let mut close_data_points: Vec<f32> = Vec::new();
+
+    let response = reqwest::get(url).await?.json::<serde_json::Value>().await?;
+    //println!("{:#?}", response["Time Series (Daily)"]);
+
+    if let Some(time_data) = response["Time Series (Daily)"].as_object() {
+        for (date, data) in time_data {
+            dbg!(date);
+            dbg!(data);
+            if let Some(close_price) = data.get("4. close") {
+                dbg!(close_price);
+                let temp = (close_price.as_str().expect("REASON")).parse::<f32>();
+                close_data_points.push(temp.expect("REASON"));
+            }
+        }
+    }
+
+    // Ok(close_data_points);
+    Ok(close_data_points)
+}
+
 fn close_trade(mut portfolio: portfolio, trade_uuid: Uuid) -> portfolio {
     let mut index_to_remove = 1000000;
 
@@ -164,7 +207,9 @@ fn status_of_all_trades(portfolio: portfolio) -> portfolio {
         println!("Current Price: ${:?}", current_stock_price);
         let profit_or_loss = current_stock_price - trade.open_price;
         println!("Profit/Loss: ${:?}", profit_or_loss);
-        let percetange_differance = (current_stock_price - trade.open_price) / 100.0;
+        let percetange_differance =
+            ((current_stock_price - trade.open_price) / trade.open_price) * 100.0;
+
         println!("Percentage Gain/Loss: {:?}%", percetange_differance);
 
         let total_value = current_stock_price * trade.size;
@@ -183,8 +228,7 @@ fn percentage_change_trigger_algo(mut portfolio: portfolio) -> portfolio {
         "PLTR", // Palantir Technologies
         "TSLA", // Tesla Inc.
         "NVDA", // NVIDIA Corporation
-        "GME",  // GameStop Corp.
-        "LCID", // Lucid Group Inc.
+        "FGL", "LCID",
     ];
     portfolio.cash_balance = 1000.0;
 
@@ -206,8 +250,7 @@ fn percentage_change_trigger_algo(mut portfolio: portfolio) -> portfolio {
             //compare current price to inital price to see % difference
             // formula, (current_price - inital_price) /100 (allows for negatives)
 
-            let percetange_differance = (current_stock_price - stock.1) / 100.0;
-
+            let percetange_differance = ((current_stock_price - stock.1) / stock.1) * 100.0;
             println!(
                 "stock: {}\ninital price: ${}\ncurrent price: ${}\ndifference: {}%",
                 stock.0, stock.1, current_stock_price, percetange_differance
@@ -225,7 +268,21 @@ fn percentage_change_trigger_algo(mut portfolio: portfolio) -> portfolio {
 
                 // if trade not open with ticker x, open trade
                 if already_open == false {
-                    let number_of_shares: f32 = 1.0;
+                    let number_of_shares: f32 = (portfolio.cash_balance * 0.1) / stock.1;
+                    portfolio = open_trade(portfolio, stock.0, number_of_shares);
+                }
+            }
+            if percetange_differance < -2.0 {
+                // first check if trade already open
+                let mut already_open: bool = false;
+                for open_trade in &portfolio.open_trades {
+                    if stock.0.to_string() == open_trade.ticker {
+                        already_open = true;
+                    }
+                }
+                // if trade not open with ticker x, open trade
+                if already_open == false {
+                    let number_of_shares: f32 = (portfolio.cash_balance * -0.1) / stock.1;
                     portfolio = open_trade(portfolio, stock.0, number_of_shares);
                 }
             }
@@ -265,10 +322,10 @@ fn percentage_change_trigger_algo(mut portfolio: portfolio) -> portfolio {
 fn moving_average_crossover_algo(mut portfolio: portfolio) -> portfolio {
     let tickers_to_watch: Vec<&str> = vec![
         "PLTR", // Palantir Technologies
-        "TSLA", // Tesla Inc.
-        "NVDA", // NVIDIA Corporation
-        "GME",  // GameStop Corp.
-        "LCID", // Lucid Group Inc.
+               // "TSLA", // Tesla Inc.
+               // "NVDA", // NVIDIA Corporation
+               // "GME",  // GameStop Corp.
+               // "LCID", // Lucid Group Inc.
     ];
 
     portfolio.cash_balance = 1000.0;
@@ -279,6 +336,8 @@ fn moving_average_crossover_algo(mut portfolio: portfolio) -> portfolio {
     let mut ticker_info: HashMap<&str, Vec<f32>> = HashMap::new();
 
     // TODO GRAB HISTORICAL DATA FROM alphavantage
+    // maybe calucalte weekly average and compare to daily
+    // or mothly to weekly
 
     portfolio
 }
@@ -419,6 +478,12 @@ fn main() {
         assets: HashMap::new(),
         open_trades: Vec::new(),
     };
+
+    let x = get_last_100_days_price_data("AAPL");
+    dbg!(x);
+    exit(0);
+
+    // TODO FINISH ABOVE FUNCTION TO TAKE IN TICKERS ^^
 
     loop {
         let open_or_closed = is_market_open();
