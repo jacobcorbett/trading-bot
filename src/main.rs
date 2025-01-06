@@ -175,6 +175,10 @@ fn status_of_all_trades(portfolio: portfolio) -> portfolio {
 }
 
 fn percentage_change_trigger_algo(mut portfolio: portfolio) -> portfolio {
+    /*
+        This algorithm, checks a list of stocks, if stock has gone up 2% since inital price
+        Then buy 1 share, then if the trade goes up 10% close the trade.
+    */
     let tickers_to_watch: Vec<&str> = vec![
         "PLTR", // Palantir Technologies
         "TSLA", // Tesla Inc.
@@ -182,6 +186,7 @@ fn percentage_change_trigger_algo(mut portfolio: portfolio) -> portfolio {
         "GME",  // GameStop Corp.
         "LCID", // Lucid Group Inc.
     ];
+    portfolio.cash_balance = 1000.0;
 
     println!("!ALGO MODE (Percentage Change Trigger)!");
     println!("Starting with ${}", portfolio.cash_balance);
@@ -195,7 +200,7 @@ fn percentage_change_trigger_algo(mut portfolio: portfolio) -> portfolio {
     }
 
     loop {
-        for stock in &inital_price_for_ticker {
+        for mut stock in &inital_price_for_ticker {
             let current_stock_price = finnhub_get_current_stock_price(stock.0).unwrap();
 
             //compare current price to inital price to see % difference
@@ -209,8 +214,20 @@ fn percentage_change_trigger_algo(mut portfolio: portfolio) -> portfolio {
             );
 
             if percetange_differance > 2.0 {
-                let number_of_shares: f32 = 1.0;
-                portfolio = open_trade(portfolio, stock.0, number_of_shares);
+                // first check if trade already open
+
+                let mut already_open: bool = false;
+                for open_trade in &portfolio.open_trades {
+                    if stock.0.to_string() == open_trade.ticker {
+                        already_open = true;
+                    }
+                }
+
+                // if trade not open with ticker x, open trade
+                if already_open == false {
+                    let number_of_shares: f32 = 1.0;
+                    portfolio = open_trade(portfolio, stock.0, number_of_shares);
+                }
             }
 
             let mut trades_to_close: Vec<Uuid> = Vec::new();
