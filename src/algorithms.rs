@@ -18,12 +18,46 @@ pub fn percentage_change_trigger_algo(mut portfolio: Portfolio) -> Portfolio {
         This algorithm, checks a list of stocks, if stock has gone up 2% since inital price
         Then buy 1 share, then if the trade goes up 10% close the trade.
     */
+
     let tickers_to_watch: Vec<&str> = vec![
         "PLTR", // Palantir Technologies
         "TSLA", // Tesla Inc.
         "NVDA", // NVIDIA Corporation
-        "FGL", "LCID",
+        "AAPL", // Apple Inc.
+        "AMZN", // Amazon.com Inc.
+        "GOOG", // Alphabet Inc.
+        "MSFT", // Microsoft Corporation
+        "META", // Meta Platforms Inc.
+        "NFLX", // Netflix Inc.
+        "AMD",  // Advanced Micro Devices Inc.
+        "INTC", // Intel Corporation
+        "ORCL", // Oracle Corporation
+        "CRM",  // Salesforce Inc.
+        "ADBE", // Adobe Inc.
+        "UBER", // Uber Technologies Inc.
+        "TWTR", // Twitter Inc. (now X Corp.)
+        "SQ",   // Block Inc.
+        "PYPL", // PayPal Holdings Inc.
+        "SHOP", // Shopify Inc.
+        "ZM",   // Zoom Video Communications
+        "BABA", // Alibaba Group
+        "V",    // Visa Inc.
+        "MA",   // Mastercard Inc.
+        "DIS",  // The Walt Disney Company
+        "NIO",  // NIO Inc.
+        "RBLX", // Roblox Corporation
+        "LCID", // Lucid Group
+        "F",    // Ford Motor Company
+        "GM",   // General Motors Company
+        "FGL",  // Example placeholder
     ];
+
+    // let tickers_to_watch: Vec<&str> = vec![
+    //     "PLTR", // Palantir Technologies
+    //     "TSLA", // Tesla Inc.
+    //     "NVDA", // NVIDIA Corporation
+    //     "FGL", "LCID",
+    // ];
     portfolio.cash_balance = 1000.0;
 
     println!("!ALGO MODE (Percentage Change Trigger)!");
@@ -39,7 +73,14 @@ pub fn percentage_change_trigger_algo(mut portfolio: Portfolio) -> Portfolio {
 
     loop {
         for mut stock in &inital_price_for_ticker {
-            let current_stock_price = api::finnhub_get_current_stock_price(stock.0).unwrap();
+            let current_stock_price = match api::finnhub_get_current_stock_price(stock.0) {
+                Ok(price) => price,
+                Err(e) => {
+                    eprintln!("Error fetching stock price: {}", e);
+                    thread::sleep(time::Duration::from_secs(60));
+                    continue;
+                }
+            };
 
             //compare current price to inital price to see % difference
             // formula, (current_price - inital_price) /100 (allows for negatives)
@@ -108,8 +149,7 @@ pub fn percentage_change_trigger_algo(mut portfolio: Portfolio) -> Portfolio {
         portfolio = portfolio_code::status_of_all_trades(portfolio);
         println!(" ");
 
-        let ten_secs = time::Duration::from_millis(10000);
-        thread::sleep(ten_secs);
+        thread::sleep(time::Duration::from_secs(10));
     }
 }
 

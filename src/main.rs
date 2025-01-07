@@ -28,9 +28,9 @@ fn main() {
     //
     //
     //
-    main_portfolio.cash_balance = 200.0;
-    portfolio_code::save_state(main_portfolio);
-    exit(9);
+    // main_portfolio.cash_balance = 200.0;
+    // portfolio_code::save_state(main_portfolio);
+    // exit(9);
 
     // TODO FINISH ABOVE FUNCTION TO TAKE IN TICKERS ^^
 

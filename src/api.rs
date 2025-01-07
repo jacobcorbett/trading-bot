@@ -9,7 +9,7 @@ use std::{thread, time};
 use uuid::Uuid;
 
 #[tokio::main]
-pub async fn finnhub_get_current_stock_price(ticker: &str) -> Result<f32, Error> {
+pub async fn finnhub_get_current_stock_price(ticker: &str) -> Result<f32, String> {
     dotenv().ok(); // Reads the .env file
     let api_key = match env::var("FINHUB_API_KEY") {
         Ok(key) => key, // If the environment variable exists, use its value
@@ -24,21 +24,21 @@ pub async fn finnhub_get_current_stock_price(ticker: &str) -> Result<f32, Error>
 
     // let url = "https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=IBM&apikey=demo";
 
-    let response = reqwest::get(url).await?.json::<serde_json::Value>().await?;
+    let response = reqwest::get(&url)
+        .await
+        .map_err(|e| format!("HTTP request failed: {}", e))?
+        .json::<Value>()
+        .await
+        .map_err(|e| format!("Failed to parse JSON: {}", e))?;
     //println!("{:#?}", response);
-    let price = response["c"].to_string();
-    // let float_price: f32 = price.parse().unwrap();
-    let temp: Vec<char> = price.chars().collect();
 
-    // temp.remove(0); // removes first "
-    // temp.pop(); // removes last "
-
-    let temp_string: String = temp.iter().collect();
-    let temp_f32: f32 = temp_string.parse().expect("Failed to parse f32");
-
-    //dbg!(temp_f32);
-
-    Ok(temp_f32)
+    if let Some(price) = response.get("c").and_then(|v| v.as_f64()) {
+        println!("{}", price);
+        dbg!(price);
+        Ok(price as f32)
+    } else {
+        Err("Missing or invalid 'c' field in response".to_string())
+    }
 }
 
 #[tokio::main]
