@@ -35,22 +35,14 @@ fn main() {
     // TODO FINISH ABOVE FUNCTION TO TAKE IN TICKERS ^^
 
     loop {
-        let open_or_closed = api::is_market_open();
-        let mut market_status = "closed";
-
-        match open_or_closed {
-            Ok(is_open) => {
-                if is_open == true {
-                    market_status = "open";
-                } else {
-                    market_status = "closed";
-                }
-            }
+        let market_status = match api::is_market_open() {
+            Ok(true) => "open".to_string(),
+            Ok(false) => "closed".to_string(),
             Err(e) => {
-                market_status = "An error occurred in fetching status of market";
                 println!("An error occurred: {}", e);
+                "An error occurred in fetching status of market".to_string()
             }
-        }
+        };
 
         println!("\nMarket Status: {}", market_status);
         println!("Commands:\ns: status of all trades\no: open new single trade\nc: close single trade\na: algorithm mode\nm: add cash\nq: quit\n");
