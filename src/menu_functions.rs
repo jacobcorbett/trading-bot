@@ -87,19 +87,18 @@ pub fn open_trade_menu_function(mut portfolio: Portfolio) -> Portfolio {
     let ticker = line.trim();
 
     //validate ticker
-    let vaild_or_not = api::check_vaild_ticker(ticker);
 
-    match vaild_or_not {
-        Ok(is_valid) => {
-            if is_valid {
-                println!("ticker is valid")
-            } else {
-                println!("invalid ticker");
-                return portfolio;
-            }
+    match api::check_vaild_ticker(ticker) {
+        Ok(true) => {
+            //println!("ticker is valid")
+        }
+        Ok(false) => {
+            println!("invalid ticker");
+            return portfolio;
         }
         Err(e) => {
             println!("An error occurred: {}", e);
+            return portfolio;
         }
     }
 

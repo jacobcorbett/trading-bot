@@ -22,7 +22,16 @@ pub struct trade_position {
 }
 pub fn open_trade(mut portfolio: Portfolio, ticker: &str, amount_of_shares: f32) -> Portfolio {
     let uuid = Uuid::new_v4();
-    let price_per_share = api::finnhub_get_current_stock_price(ticker).unwrap();
+    let price_per_share = match api::finnhub_get_current_stock_price(ticker) {
+        Ok(price) => price,
+        Err(e) => {
+            eprintln!(
+                "failed to find price of stock while opening manual trade: {}",
+                e
+            );
+            return portfolio;
+        }
+    };
 
     let total_value = price_per_share * amount_of_shares;
 

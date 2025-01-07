@@ -33,8 +33,8 @@ pub async fn finnhub_get_current_stock_price(ticker: &str) -> Result<f32, String
     //println!("{:#?}", response);
 
     if let Some(price) = response.get("c").and_then(|v| v.as_f64()) {
-        println!("{}", price);
-        dbg!(price);
+        // println!("{}", price);
+        // dbg!(price);
         Ok(price as f32)
     } else {
         Err("Missing or invalid 'c' field in response".to_string())
@@ -62,14 +62,12 @@ pub async fn is_market_open() -> Result<bool, String> {
         .await
         .map_err(|e| format!("Failed to parse JSON: {}", e))?;
 
-    let mut open_or_closed: bool = false;
     if let Some(value) = response["isOpen"].as_bool() {
-        open_or_closed = value as bool;
+        let open_or_closed = value as bool;
+        Ok(open_or_closed)
     } else {
         return Err("Failed to find 'isOpen' in reponse".to_string());
     }
-
-    Ok(open_or_closed)
 }
 
 #[tokio::main]
@@ -113,7 +111,7 @@ pub async fn get_last_100_days_price_data(ticker: &str) -> Result<Vec<f32>, Erro
 }
 
 #[tokio::main]
-pub async fn check_vaild_ticker(ticker: &str) -> Result<bool, Error> {
+pub async fn check_vaild_ticker(ticker: &str) -> Result<bool, String> {
     dotenv().ok(); // Reads the .env file
     let api_key = match env::var("FINHUB_API_KEY") {
         Ok(key) => key, // If the environment variable exists, use its value
@@ -128,13 +126,18 @@ pub async fn check_vaild_ticker(ticker: &str) -> Result<bool, Error> {
         + "&exchange=US&token="
         + &api_key;
 
-    let response = reqwest::get(url).await?.json::<serde_json::Value>().await?;
+    let response = reqwest::get(&url)
+        .await
+        .map_err(|e| format!("HTTP request failed: {}", e))?
+        .json::<Value>()
+        .await
+        .map_err(|e| format!("Failed to parse JSON: {}", e))?;
 
     let mut length = 0;
     if let Some(value) = response["count"].as_i64() {
         length = value as i32;
     } else {
-        // handle error
+        return Err("Failed to find 'count' in response".to_string());
     }
 
     let mut valid = false;
