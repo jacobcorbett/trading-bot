@@ -133,23 +133,17 @@ pub async fn check_vaild_ticker(ticker: &str) -> Result<bool, String> {
         .await
         .map_err(|e| format!("Failed to parse JSON: {}", e))?;
 
-    let mut length = 0;
     if let Some(value) = response["count"].as_i64() {
-        length = value as i32;
+        let length = value as i32;
+        for i in 0..length {
+            let current_ticker = &response["result"][i as usize]["displaySymbol"];
+            if current_ticker == ticker {
+                return Ok(true);
+            }
+        }
     } else {
         return Err("Failed to find 'count' in response".to_string());
     }
 
-    let mut valid = false;
-
-    for i in 0..length {
-        let current_ticker = &response["result"][i as usize]["displaySymbol"];
-
-        if current_ticker == ticker {
-            valid = true;
-            break;
-        }
-    }
-
-    Ok(valid)
+    Ok(false)
 }
