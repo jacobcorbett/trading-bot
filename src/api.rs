@@ -42,7 +42,7 @@ pub async fn finnhub_get_current_stock_price(ticker: &str) -> Result<f32, String
 }
 
 #[tokio::main]
-pub async fn is_market_open() -> Result<bool, Error> {
+pub async fn is_market_open() -> Result<bool, String> {
     dotenv().ok(); // Reads the .env file
     let api_key = match env::var("FINHUB_API_KEY") {
         Ok(key) => key, // If the environment variable exists, use its value
@@ -55,14 +55,18 @@ pub async fn is_market_open() -> Result<bool, Error> {
     let url =
         "https://finnhub.io/api/v1/stock/market-status?exchange=US&token=".to_owned() + &api_key;
 
-    let response = reqwest::get(url).await?.json::<serde_json::Value>().await?;
-    // dbg!(&response["isOpen"].as_bool());
+    let response = reqwest::get(&url)
+        .await
+        .map_err(|e| format!("HTTP request failed: {}", e))?
+        .json::<Value>()
+        .await
+        .map_err(|e| format!("Failed to parse JSON: {}", e))?;
 
     let mut open_or_closed: bool = false;
     if let Some(value) = response["isOpen"].as_bool() {
         open_or_closed = value as bool;
     } else {
-        // handle error
+        return Err("Failed to find 'isOpen' in reponse".to_string());
     }
 
     Ok(open_or_closed)

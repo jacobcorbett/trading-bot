@@ -47,6 +47,7 @@ fn main() {
                 }
             }
             Err(e) => {
+                market_status = "An error occurred in fetching status of market";
                 println!("An error occurred: {}", e);
             }
         }

@@ -67,7 +67,14 @@ pub fn percentage_change_trigger_algo(mut portfolio: Portfolio) -> Portfolio {
     let mut inital_price_for_ticker: HashMap<&str, f32> = HashMap::new();
 
     for ticker in tickers_to_watch {
-        let price_per_share = api::finnhub_get_current_stock_price(ticker).unwrap();
+        let price_per_share = match api::finnhub_get_current_stock_price(ticker) {
+            Ok(price) => price,
+            Err(e) => {
+                eprintln!("Error fetching inital stock price for algo: {}", e);
+                return portfolio;
+            }
+        };
+
         inital_price_for_ticker.insert(ticker, price_per_share);
     }
 
