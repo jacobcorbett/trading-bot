@@ -254,8 +254,7 @@ pub fn load_state_v1(mut portfolio: Portfolio) -> Result<Portfolio, String> {
                 }
             };
 
-            dbg!(temp_trade_position);
-            // portfolio.open_trades.push(temp);
+            portfolio.open_trades.push(temp_trade_position);
         }
 
         Ok(portfolio)
