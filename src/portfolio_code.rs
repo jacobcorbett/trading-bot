@@ -128,11 +128,24 @@ pub fn save_state(portfolio: Portfolio) -> Portfolio {
     portfolio
 }
 
-pub fn load_state_v1(portfolio: Portfolio) -> Result<Portfolio, String> {
+pub fn load_state_v1(mut portfolio: Portfolio) -> Result<Portfolio, String> {
     let save_file_path = "./save_states/test.txt";
     let save_file_lines = lines_from_file(save_file_path);
 
     if save_file_lines[0] == "version:1.0" {
+        let new_cash_balance = save_file_lines[1].split(":");
+        let temp_collection: Vec<&str> = new_cash_balance.collect();
+
+        // attempt to parse the loaded cash balance from the file
+        // If fail return
+        match temp_collection[1].parse::<f32>() {
+            Ok(loaded_cash_balance) => portfolio.cash_balance = loaded_cash_balance,
+            Err(e) => {
+                eprintln!("Failed to convert to f32: {}", e);
+                return Err("Failed to convert to f32".to_string());
+            }
+        }
+
         Ok(portfolio)
     } else {
         Err("not version 1.0".to_string())

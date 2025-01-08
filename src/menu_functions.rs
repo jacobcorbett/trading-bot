@@ -136,7 +136,6 @@ pub fn load_state_menu_function(mut portfolio: Portfolio) -> Portfolio {
         Ok(loaded_portfolio) => loaded_portfolio,
         Err(e) => {
             eprintln!("Failed to load State: {}", e);
-
             blank_portfolio
         }
     }
