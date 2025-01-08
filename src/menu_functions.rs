@@ -114,3 +114,30 @@ pub fn open_trade_menu_function(mut portfolio: Portfolio) -> Portfolio {
     portfolio
     //
 }
+
+pub fn save_state_menu_function(mut portfolio: Portfolio) -> Portfolio {
+    println!("STARTING SAVE STATE");
+
+    portfolio = portfolio_code::save_state(portfolio);
+
+    portfolio
+}
+
+pub fn load_state_menu_function(mut portfolio: Portfolio) -> Portfolio {
+    println!("LOADING STATE");
+
+    let blank_portfolio = Portfolio {
+        cash_balance: 0.0,
+        assets: HashMap::new(),
+        open_trades: Vec::new(),
+    };
+
+    match portfolio_code::load_state_v1(portfolio) {
+        Ok(loaded_portfolio) => loaded_portfolio,
+        Err(e) => {
+            eprintln!("Failed to load State: {}", e);
+
+            blank_portfolio
+        }
+    }
+}

@@ -28,9 +28,6 @@ fn main() {
     //
     //
     //
-    // main_portfolio.cash_balance = 200.0;
-    // portfolio_code::save_state(main_portfolio);
-    // exit(9);
 
     // TODO FINISH ABOVE FUNCTION TO TAKE IN TICKERS ^^
 
@@ -45,7 +42,7 @@ fn main() {
         };
 
         println!("\nMarket Status: {}", market_status);
-        println!("Commands:\ns: status of all trades\no: open new single trade\nc: close single trade\na: algorithm mode\nm: add cash\nq: quit\n");
+        println!("Commands:\ns: status of all trades\no: open new single trade\nc: close single trade\na: algorithm mode\nm: add cash\nS: save state\nR: load state\nq: quit\n");
         let mut line = String::new();
         println!("Enter command :");
 
@@ -65,10 +62,10 @@ fn main() {
             main_portfolio = menu_functions::algorithm_menu_function(main_portfolio);
         } else if command == "m" {
             main_portfolio = menu_functions::add_cash_menu_function(main_portfolio);
-        } else if command == "r" {
-            // load in from text file
-        } else if command == "s" {
-            // save sstate to text file
+        } else if command == "R" {
+            main_portfolio = menu_functions::load_state_menu_function(main_portfolio);
+        } else if command == "S" {
+            main_portfolio = menu_functions::save_state_menu_function(main_portfolio);
         } else if command == "q" {
             println!("Exiting..");
             break;

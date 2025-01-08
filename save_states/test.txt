@@ -1,3 +1,10 @@
 version:1.0
-cash_balance:200
-number_of_open_trades:0
+cash_balance:363.34998
+number_of_open_trades:1
+open_trade:0
+uuid:3865b375-ee65-4593-b6cd-ad8603c05908
+ticker:AMD
+size:5
+open_price:127.33
+lose_price:-1
+inital_value:636.65
