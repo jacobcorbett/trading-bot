@@ -146,6 +146,118 @@ pub fn load_state_v1(mut portfolio: Portfolio) -> Result<Portfolio, String> {
             }
         }
 
+        let number_of_open_trades_line = save_file_lines[2].split(":");
+        let temp_collection: Vec<&str> = number_of_open_trades_line.collect();
+        let mut number_of_open_trades = 0;
+
+        // reads in number of trades
+        match temp_collection[1].parse::<i32>() {
+            Ok(loaded_number_of_open_trades) => {
+                number_of_open_trades = loaded_number_of_open_trades
+            }
+            Err(e) => {
+                eprintln!("Failed convert number of trades to i32: {}", e);
+                return Err("Failed convert number of trades to i32".to_string());
+            }
+        };
+
+        for i in 0..number_of_open_trades {
+            println!("{}", i);
+
+            let mut temp_trade_position = trade_position {
+                uuid: Uuid::new_v4(),
+                ticker: "TEMP".to_string(),
+                size: 0.0,
+                open_price: 0.0,
+                close_price: 0.0,
+                inital_value: 0.0,
+            };
+
+            let starting_index = 4;
+
+            // Working on UUID
+            let working_line_index = starting_index + ((i as usize) * 7);
+            let uuid_line = save_file_lines[working_line_index].split(":");
+            let temp_collection: Vec<&str> = uuid_line.collect();
+
+            match temp_collection[1].parse::<Uuid>() {
+                Ok(loaded_uuid) => temp_trade_position.uuid = loaded_uuid,
+                Err(e) => {
+                    eprintln!("Failed to parse UUID: {}", e);
+                    return Err("Failed to parse UUID".to_string());
+                }
+            };
+
+            // Working on ticker
+
+            let working_line_index = starting_index + 1 + ((i as usize) * 7);
+            let ticker_line = save_file_lines[working_line_index].split(":");
+            let temp_collection: Vec<&str> = ticker_line.collect();
+
+            match temp_collection[1].parse::<String>() {
+                Ok(loaded_ticker) => temp_trade_position.ticker = loaded_ticker,
+                Err(e) => {
+                    eprintln!("Failed to parse ticker into String: {}", e);
+                    return Err("Failed to parse ticker into String".to_string());
+                }
+            };
+
+            // Working on postion size
+            let working_line_index = starting_index + 2 + ((i as usize) * 7);
+            let size_line = save_file_lines[working_line_index].split(":");
+            let temp_collection: Vec<&str> = size_line.collect();
+
+            match temp_collection[1].parse::<f32>() {
+                Ok(loaded_size) => temp_trade_position.size = loaded_size,
+                Err(e) => {
+                    eprintln!("Failed to convert to f32: {}", e);
+                    return Err("Failed to convert to f32".to_string());
+                }
+            };
+
+            // Working on open price
+            let working_line_index = starting_index + 3 + ((i as usize) * 7);
+            let open_price_line = save_file_lines[working_line_index].split(":");
+            let temp_collection: Vec<&str> = open_price_line.collect();
+
+            match temp_collection[1].parse::<f32>() {
+                Ok(loaded_open_price) => temp_trade_position.open_price = loaded_open_price,
+                Err(e) => {
+                    eprintln!("Failed to convert to f32: {}", e);
+                    return Err("Failed to convert to f32".to_string());
+                }
+            };
+
+            // Working on close price
+            let working_line_index = starting_index + 4 + ((i as usize) * 7);
+            let close_price_line = save_file_lines[working_line_index].split(":");
+            let temp_collection: Vec<&str> = close_price_line.collect();
+
+            match temp_collection[1].parse::<f32>() {
+                Ok(loaded_close_price) => temp_trade_position.close_price = loaded_close_price,
+                Err(e) => {
+                    eprintln!("Failed to convert to f32: {}", e);
+                    return Err("Failed to convert to f32".to_string());
+                }
+            };
+
+            // Working on inital_value price
+            let working_line_index = starting_index + 5 + ((i as usize) * 7);
+            let inital_value_line = save_file_lines[working_line_index].split(":");
+            let temp_collection: Vec<&str> = inital_value_line.collect();
+
+            match temp_collection[1].parse::<f32>() {
+                Ok(loaded_inital_value) => temp_trade_position.inital_value = loaded_inital_value,
+                Err(e) => {
+                    eprintln!("Failed to convert to f32: {}", e);
+                    return Err("Failed to convert to f32".to_string());
+                }
+            };
+
+            dbg!(temp_trade_position);
+            // portfolio.open_trades.push(temp);
+        }
+
         Ok(portfolio)
     } else {
         Err("not version 1.0".to_string())
