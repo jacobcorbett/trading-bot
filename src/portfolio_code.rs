@@ -66,33 +66,7 @@ pub fn status_of_all_trades(portfolio: Portfolio) -> Portfolio {
     return portfolio;
 }
 
-pub fn save_state(portfolio: Portfolio) -> Portfolio {
-    /*
-        SAVE FORMAT
-        version: 1.0
-        cash_balance: 100.0
-        number_of_open_trades: 2
-        open_trade:1{
-        uuid: 123123-123123-123123-123123
-        ticker: AAPL
-        size: 1.0
-        open_price: 235.45
-        close_price: -1.0
-        inital_value: 235.45
-        }
-        open_trade: 2 {
-        uuid: 123123-123123-123123-123123
-        ticker: AAPL
-        size: 1.0
-        open_price: 235.45
-        close_price: -1.0
-        inital_value: 235.45
-        }
-
-    */
-
-    println!("SAVE STATE");
-
+pub fn save_state(portfolio: Portfolio, file_name: &str) -> Portfolio {
     // Constructs the basic header
     let mut data = "version:1.0\ncash_balance:".to_owned()
         + &portfolio.cash_balance.to_string()
@@ -123,13 +97,18 @@ pub fn save_state(portfolio: Portfolio) -> Portfolio {
 
     // TODO loop through all open trades and concat to data
 
-    fs::write("./save_states/test.txt", data).expect("Unable to write file");
+    let path = "./save_states/".to_owned() + file_name + ".txt";
+
+    fs::write(path, data).expect("Unable to write file");
+
+    println!("Successfully saved State as {}.txt in /saves", file_name);
 
     portfolio
 }
 
-pub fn load_state_v1(mut portfolio: Portfolio) -> Result<Portfolio, String> {
-    let save_file_path = "./save_states/test.txt";
+pub fn load_state_v1(mut portfolio: Portfolio, file_name: &str) -> Result<Portfolio, String> {
+    let save_file_path = "./save_states/".to_owned() + file_name + ".txt";
+
     let save_file_lines = lines_from_file(save_file_path);
 
     if save_file_lines[0] == "version:1.0" {

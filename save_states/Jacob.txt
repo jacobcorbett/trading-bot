@@ -1,0 +1,10 @@
+version:1.0
+cash_balance:763.15
+number_of_open_trades:1
+open_trade:0
+uuid:09ee6fb7-1b64-4ee7-a841-4fc5678ffc47
+ticker:AAPL
+size:1
+open_price:236.85
+close_price:-1
+inital_value:236.85

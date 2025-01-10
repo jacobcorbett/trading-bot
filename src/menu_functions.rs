@@ -118,7 +118,14 @@ pub fn open_trade_menu_function(mut portfolio: Portfolio) -> Portfolio {
 pub fn save_state_menu_function(mut portfolio: Portfolio) -> Portfolio {
     println!("STARTING SAVE STATE");
 
-    portfolio = portfolio_code::save_state(portfolio);
+    println!("Enter File name of Save:");
+    let mut line = String::new();
+    std::io::stdin()
+        .read_line(&mut line)
+        .expect("Failed to read line");
+    let file_name = line.trim();
+
+    portfolio = portfolio_code::save_state(portfolio, file_name);
 
     portfolio
 }
@@ -126,13 +133,20 @@ pub fn save_state_menu_function(mut portfolio: Portfolio) -> Portfolio {
 pub fn load_state_menu_function(mut portfolio: Portfolio) -> Portfolio {
     println!("LOADING STATE");
 
+    println!("Enter File name of Save:");
+    let mut line = String::new();
+    std::io::stdin()
+        .read_line(&mut line)
+        .expect("Failed to read line");
+    let file_name = line.trim();
+
     let blank_portfolio = Portfolio {
         cash_balance: 0.0,
         assets: HashMap::new(),
         open_trades: Vec::new(),
     };
 
-    match portfolio_code::load_state_v1(portfolio) {
+    match portfolio_code::load_state_v1(portfolio, file_name) {
         Ok(loaded_portfolio) => loaded_portfolio,
         Err(e) => {
             eprintln!("Failed to load State: {}", e);
