@@ -7,12 +7,13 @@ use std::collections::hash_set::Difference;
 use std::f64::consts::PI;
 use std::fs;
 use std::fs::File;
+use std::io;
 use std::io::BufRead;
 use std::io::BufReader;
 use std::path::Path;
 use std::process::exit;
-
 use std::{collections::HashMap, env};
+
 use std::{thread, time};
 use uuid::Uuid;
 
@@ -29,6 +30,26 @@ fn lines_from_file(filename: impl AsRef<Path>) -> Vec<String> {
     buf.lines()
         .map(|l| l.expect("Could not parse line"))
         .collect()
+}
+
+fn get_files_in_directory(path: &str) -> io::Result<Vec<String>> {
+    // https://www.thorsten-hans.com/weekly-rust-trivia-get-all-files-in-a-directory/
+    // Get a list of all entries in the folder
+    let entries = fs::read_dir(path)?;
+
+    // Extract the filenames from the directory entries and store them in a vector
+    let file_names: Vec<String> = entries
+        .filter_map(|entry| {
+            let path = entry.ok()?.path();
+            if path.is_file() {
+                path.file_name()?.to_str().map(|s| s.to_owned())
+            } else {
+                None
+            }
+        })
+        .collect();
+
+    Ok(file_names)
 }
 
 pub fn update_cash_balance(mut portfolio: Portfolio, update_value: f32) -> Portfolio {
@@ -73,6 +94,8 @@ pub fn status_of_all_trades(portfolio: Portfolio) -> Portfolio {
 
 pub fn save_state(portfolio: Portfolio, file_name: &str) -> Portfolio {
     // Constructs the basic header
+    log::info!("Starting Save State function");
+
     let mut data = "version:1.0\ncash_balance:".to_owned()
         + &portfolio.cash_balance.to_string()
         + "\nnumber_of_open_trades:"
@@ -100,12 +123,11 @@ pub fn save_state(portfolio: Portfolio, file_name: &str) -> Portfolio {
         index += 1;
     }
 
-    // TODO loop through all open trades and concat to data
-
     let path = "./save_states/".to_owned() + file_name + ".txt";
 
     fs::write(path, data).expect("Unable to write file");
 
+    log::info!("Successfully saved State as {}.txt in /saves", file_name);
     println!("Successfully saved State as {}.txt in /saves", file_name);
 
     portfolio
@@ -113,6 +135,30 @@ pub fn save_state(portfolio: Portfolio, file_name: &str) -> Portfolio {
 
 pub fn load_state_v1(mut portfolio: Portfolio, file_name: &str) -> Result<Portfolio, String> {
     let save_file_path = "./save_states/".to_owned() + file_name + ".txt";
+
+    // validate that the file exists
+
+    let save_files_names = match get_files_in_directory("./save_states/") {
+        Ok(save_files_names) => save_files_names,
+        Err(e) => {
+            eprintln!("failed");
+            log::error!("Failed to get files in /saves dir: {}", e);
+            return Err("Failed to get files in dir".to_string());
+        }
+    };
+
+    let mut file_exisits = false;
+
+    for file in save_files_names {
+        if file_name.to_owned() + ".txt" == file {
+            file_exisits = true;
+        }
+    }
+
+    if file_exisits == false {
+        log::error!("File does not exist in /saves dir");
+        return Err("File does not exist".to_string());
+    }
 
     let save_file_lines = lines_from_file(save_file_path);
 

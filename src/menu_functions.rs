@@ -178,6 +178,7 @@ pub fn open_trade_menu_function(mut portfolio: Portfolio) -> Portfolio {
 }
 
 pub fn save_state_menu_function(mut portfolio: Portfolio) -> Portfolio {
+    log::info!("User started save state menu function");
     println!("STARTING SAVE STATE");
 
     println!("Enter File name of Save:");
@@ -186,6 +187,7 @@ pub fn save_state_menu_function(mut portfolio: Portfolio) -> Portfolio {
         .read_line(&mut line)
         .expect("Failed to read line");
     let file_name = line.trim();
+    log::info!("User entered file name: {}", file_name);
 
     portfolio = portfolio_code::save_state(portfolio, file_name);
 
