@@ -1,4 +1,7 @@
 use dotenv::dotenv;
+use flexi_logger::{FileSpec, Logger, WriteMode};
+use log;
+
 use reqwest::{Error, Response};
 use serde_json::Value;
 use std::collections::hash_set::Difference;
@@ -16,11 +19,33 @@ mod trade;
 use crate::portfolio_code::Portfolio;
 
 fn main() {
+    // Initialize the logger
+    Logger::try_with_str("trace") // Set log level to "info"
+        .unwrap()
+        .log_to_file(
+            FileSpec::default()
+                .directory("logs") // Set directory to "logs"
+                .suffix("log"), // Optional: add .log suffix to files
+        )
+        .format(flexi_logger::detailed_format)
+        .write_mode(WriteMode::BufferAndFlush) // Buffer logs and flush periodically
+        .start()
+        .unwrap();
+
+    // log::error!("Critical error occurred: {}", "database connection failed");
+    // log::warn!("Warning: approaching memory limit at {}%", 90);
+    // log::info!("Server started successfully on port {}", 8080);
+    // log::debug!("Processing request with id: {}", "12345");
+    // log::trace!("Entering function with args: {:?}", vec![1, 2, 3]);
+
+    log::info!("Program started");
+
     let mut main_portfolio = Portfolio {
         cash_balance: 0.0,
         assets: HashMap::new(),
         open_trades: Vec::new(),
     };
+    log::info!("Created main_portfolio: {:?}", main_portfolio);
 
     // let x = api::get_last_100_days_price_data("AAPL");
     // dbg!(x);
@@ -30,12 +55,22 @@ fn main() {
     //
 
     // TODO FINISH ABOVE FUNCTION TO TAKE IN TICKERS ^^
-
+    log::info!("Starting main loop");
     loop {
         let market_status = match api::is_market_open() {
-            Ok(true) => "open".to_string(),
-            Ok(false) => "closed".to_string(),
+            Ok(true) => {
+                log::info!("Succsefully got market status and its: {}", true);
+                "open".to_string()
+            }
+            Ok(false) => {
+                log::info!("Succsefully got market status and its: {}", false);
+                "closed".to_string()
+            }
             Err(e) => {
+                log::error!(
+                    "An error occurred when trying to fetch market status: {}",
+                    e
+                );
                 println!("An error occurred: {}", e);
                 "An error occurred in fetching status of market".to_string()
             }
@@ -51,6 +86,7 @@ fn main() {
             .expect("Failed to read line");
 
         let command = line.trim();
+        log::info!("Reading user input: \'{}\'", command);
 
         if command == "s" {
             main_portfolio = menu_functions::status_of_all_trades_menu_function(main_portfolio);

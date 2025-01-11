@@ -42,6 +42,7 @@ pub fn status_of_all_trades(portfolio: Portfolio) -> Portfolio {
     if portfolio.open_trades.len() == 0 {
         println!("Cash Balance: ${}", portfolio.cash_balance);
         println!("No Open Trades");
+        log::info!("User had no open trades");
         return portfolio;
     }
     println!("Cash Balance: ${}\n", portfolio.cash_balance);
@@ -63,6 +64,10 @@ pub fn status_of_all_trades(portfolio: Portfolio) -> Portfolio {
         println!("Total Value: ${:?}", total_value);
         println!(" ");
     }
+    log::info!(
+        "Succesfully printed all users opened trades: {} number of trades",
+        portfolio.open_trades.len()
+    );
     return portfolio;
 }
 

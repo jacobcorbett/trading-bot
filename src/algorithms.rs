@@ -14,6 +14,7 @@ use crate::portfolio_code::Portfolio;
 use crate::trade;
 
 pub fn percentage_change_trigger_algo(mut portfolio: Portfolio) -> Portfolio {
+    log::info!("User entered Percentage Change trigger algorithm");
     /*
         This algorithm, checks a list of stocks, if stock has gone up 2% since inital price
         Then buy 1 share, then if the trade goes up 10% close the trade.
@@ -161,6 +162,7 @@ pub fn percentage_change_trigger_algo(mut portfolio: Portfolio) -> Portfolio {
 }
 
 pub fn moving_average_crossover_algo(mut portfolio: Portfolio) -> Portfolio {
+    log::info!("User entered Moving average crossover algorithm");
     let tickers_to_watch: Vec<&str> = vec![
         "PLTR", // Palantir Technologies
                // "TSLA", // Tesla Inc.

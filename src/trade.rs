@@ -56,6 +56,7 @@ pub fn open_trade(mut portfolio: Portfolio, ticker: &str, amount_of_shares: f32)
 }
 
 pub fn close_trade(mut portfolio: Portfolio, trade_uuid: Uuid) -> Portfolio {
+    log::info!("Attempting to close trade with UUID of: {}", trade_uuid);
     let mut index_to_remove = 1000000;
 
     for i in 0..portfolio.open_trades.len() {
@@ -66,8 +67,10 @@ pub fn close_trade(mut portfolio: Portfolio, trade_uuid: Uuid) -> Portfolio {
 
     if index_to_remove == 1000000 {
         println!("No matching open trades");
+        log::info!("No matching open trades with UUID: {}", trade_uuid);
         return portfolio;
     } else {
+        log::info!("Succesfully closed trade with UUID: {}", trade_uuid);
         portfolio.open_trades.remove(index_to_remove);
     }
     portfolio
