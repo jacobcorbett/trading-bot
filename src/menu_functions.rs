@@ -262,10 +262,12 @@ pub fn download_stock_data_menu_function() {
     }
 
     println!("Downloading stock data...");
+    log::info!("Downloading stock data, ticker: {}", ticker);
 
     let stock_data = match api::get_20_years_old_historial_data(ticker) {
         Ok(stock_data) => {
             println!("Successfully got stock data");
+            log::info!("Successfully got stock data, ticker: {}", ticker);
             stock_data
         }
         Err(e) => {
@@ -276,7 +278,9 @@ pub fn download_stock_data_menu_function() {
     };
 
     //save data to file
+    log::info!("Attemping to write data to file, ticker: {}", ticker);
     let path = "./stock_data/".to_owned() + ticker + ".txt";
     let data_to_write = stock_data.join("\n");
     fs::write(path, data_to_write).expect("Unable to write file");
+    log::info!("Successfully written data to file, ticker: {}", ticker);
 }
