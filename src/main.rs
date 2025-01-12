@@ -47,7 +47,7 @@ fn main() {
     };
     log::info!("Created main_portfolio: {:?}", main_portfolio);
 
-    // let x = api::get_last_100_days_price_data("AAPL");
+    // let x = api::get_20_years_old_historial_data("AAPL");
     // dbg!(x);
     // exit(0);
     //
@@ -77,7 +77,7 @@ fn main() {
         };
 
         println!("\nMarket Status: {}", market_status);
-        println!("Commands:\ns: status of all trades\no: open new single trade\nc: close single trade\na: algorithm mode\nm: add cash\nS: save state\nR: load state\nq: quit\n");
+        println!("Commands:\ns: status of all trades\no: open new single trade\nc: close single trade\nd: download stock data\na: algorithm mode\nm: add cash\nS: save state\nR: load state\nq: quit\n");
         let mut line = String::new();
         println!("Enter command :");
 
@@ -96,6 +96,8 @@ fn main() {
             main_portfolio = menu_functions::closeing_trade_menu_function(main_portfolio);
         } else if command == "a" {
             main_portfolio = menu_functions::algorithm_menu_function(main_portfolio);
+        } else if command == "d" {
+            menu_functions::download_stock_data_menu_function();
         } else if command == "m" {
             main_portfolio = menu_functions::add_cash_menu_function(main_portfolio);
         } else if command == "R" {

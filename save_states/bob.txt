@@ -1,0 +1,17 @@
+version:1.0
+cash_balance:294.21997
+number_of_open_trades:2
+open_trade:0
+uuid:7533c63d-db53-4de5-bc0d-8f6230d37649
+ticker:AMD
+size:2
+open_price:116.04
+close_price:-1
+inital_value:232.08
+open_trade:1
+uuid:b698369f-de36-48bc-81d5-10182a0911b2
+ticker:AAPL
+size:2
+open_price:236.85
+close_price:-1
+inital_value:473.7

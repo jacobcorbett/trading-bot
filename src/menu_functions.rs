@@ -1,18 +1,18 @@
-use dotenv::dotenv;
-use reqwest::{Error, Response};
-use serde_json::Value;
-use std::collections::hash_set::Difference;
-use std::f64::consts::PI;
-use std::process::exit;
-use std::{collections::HashMap, env};
-use std::{thread, time};
-use uuid::Uuid;
-
 use crate::algorithms;
 use crate::api;
 use crate::portfolio_code;
 use crate::portfolio_code::Portfolio;
 use crate::trade;
+use dotenv::dotenv;
+use reqwest::{Error, Response};
+use serde_json::Value;
+use std::collections::hash_set::Difference;
+use std::f64::consts::PI;
+use std::fs;
+use std::process::exit;
+use std::{collections::HashMap, env};
+use std::{thread, time};
+use uuid::Uuid;
 
 pub fn status_of_all_trades_menu_function(mut portfolio: Portfolio) -> Portfolio {
     log::info!("User entered status of app trades menu function");
@@ -223,4 +223,60 @@ pub fn load_state_menu_function(mut portfolio: Portfolio) -> Portfolio {
             blank_portfolio
         }
     }
+}
+
+pub fn download_stock_data_menu_function() {
+    println!(" ");
+    println!("DOWNLOAD DATA OF STOCK");
+    log::info!("User attempting to download data of a stock");
+
+    println!("Enter Ticker :");
+    let mut line = String::new();
+    std::io::stdin()
+        .read_line(&mut line)
+        .expect("Failed to read line");
+    let ticker = line.trim();
+    log::info!("User entered for ticker: \'{}\'", ticker);
+
+    log::info!("Checking if ticker is vaild...");
+
+    match api::check_vaild_ticker(ticker) {
+        Ok(true) => {
+            //println!("ticker is valid")
+            log::info!("Ticker \'{}\' is vaild", ticker);
+        }
+        Ok(false) => {
+            println!("invalid ticker");
+            log::info!("Ticker \'{}\' is not vaild", ticker);
+            return;
+        }
+        Err(e) => {
+            log::error!(
+                "An error occurred when trying to see if ticker: \'{}\' is vaild: {}",
+                ticker,
+                e
+            );
+            println!("An error occurred: {}", e);
+            return;
+        }
+    }
+
+    println!("Downloading stock data...");
+
+    let stock_data = match api::get_20_years_old_historial_data(ticker) {
+        Ok(stock_data) => {
+            println!("Successfully got stock data");
+            stock_data
+        }
+        Err(e) => {
+            log::error!("An error occurred: {}", e);
+            println!("An error occurred: {}", e);
+            Vec::new()
+        }
+    };
+
+    //save data to file
+    let path = "./stock_data/".to_owned() + ticker + ".txt";
+    let data_to_write = stock_data.join("\n");
+    fs::write(path, data_to_write).expect("Unable to write file");
 }

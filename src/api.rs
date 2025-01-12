@@ -18,11 +18,8 @@ pub async fn finnhub_get_current_stock_price(ticker: &str) -> Result<f32, String
             std::process::exit(1); // Exit the program with a non-zero status code
         }
     };
-    // let url = "https://www.alphavantage.co/query?function=TIME_SERIES_INTRADAY&extended_hours=true&symbol=TSLA&interval=1min&apikey=".to_owned() + &api_key;
 
     let url = "https://finnhub.io/api/v1/quote?symbol=".to_owned() + ticker + "&token=" + &api_key;
-
-    // let url = "https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=IBM&apikey=demo";
 
     let response = reqwest::get(&url)
         .await
@@ -30,11 +27,8 @@ pub async fn finnhub_get_current_stock_price(ticker: &str) -> Result<f32, String
         .json::<Value>()
         .await
         .map_err(|e| format!("Failed to parse JSON: {}", e))?;
-    //println!("{:#?}", response);
 
     if let Some(price) = response.get("c").and_then(|v| v.as_f64()) {
-        // println!("{}", price);
-        // dbg!(price);
         Ok(price as f32)
     } else {
         Err("Missing or invalid 'c' field in response".to_string())
@@ -71,7 +65,7 @@ pub async fn is_market_open() -> Result<bool, String> {
 }
 
 #[tokio::main]
-pub async fn get_last_100_days_price_data(ticker: &str) -> Result<Vec<f32>, Error> {
+pub async fn get_20_years_old_historial_data(ticker: &str) -> Result<Vec<String>, String> {
     dotenv().ok(); // Reads the .env file
     let api_key = match env::var("ALPHA_API_KEY") {
         Ok(key) => key, // If the environment variable exists, use its value
@@ -81,33 +75,51 @@ pub async fn get_last_100_days_price_data(ticker: &str) -> Result<Vec<f32>, Erro
         }
     };
     // let url = "https://www.alphavantage.co/query?function=TIME_SERIES_INTRADAY&extended_hours=true&symbol=TSLA&interval=1min&apikey=".to_owned() + &api_key;
-    let url = "https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=IBM&apikey=demo";
 
-    // let url = "https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=".to_owned()
-    //     + ticker
-    //     + "&apikey="
-    //     + &api_key;
+    // let url =
+    //     "https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=IBM&outputsize=full&apikey=demo";
 
-    // let url = "https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=IBM&apikey=demo";
+    let url = "https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=".to_owned()
+        + ticker
+        + "&outputsize=full&apikey="
+        + &api_key;
 
-    let mut close_data_points: Vec<f32> = Vec::new();
-
-    let response = reqwest::get(url).await?.json::<serde_json::Value>().await?;
+    let response = reqwest::get(&*url)
+        .await
+        .map_err(|e| format!("HTTP request failed: {}", e))?
+        .json::<Value>()
+        .await
+        .map_err(|e| format!("Failed to parse JSON: {}", e))?;
     //println!("{:#?}", response["Time Series (Daily)"]);
+
+    let mut stock_data_points: Vec<String> = Vec::new();
 
     if let Some(time_data) = response["Time Series (Daily)"].as_object() {
         for (date, data) in time_data {
-            dbg!(date);
-            dbg!(data);
+            let mut temp_line = String::new();
+
+            temp_line += date;
+            temp_line += ":";
+
             if let Some(close_price) = data.get("4. close") {
-                dbg!(close_price);
-                let temp = (close_price.as_str().expect("REASON")).parse::<f32>();
-                close_data_points.push(temp.expect("REASON"));
+                //dbg!(close_price);
+
+                let close_price_string = close_price.to_string();
+                let foo = close_price_string.trim().trim_matches('"');
+                //println!("{}", foo);
+                temp_line += foo;
+            } else {
+                return Err("Failed to find 4. close in data ".to_string());
             }
+
+            //println!("{}", temp_line);
+            stock_data_points.push(temp_line);
         }
+    } else {
+        return Err("Failed to find Time Series (Daily) in response ".to_string());
     }
 
-    Ok(close_data_points)
+    Ok(stock_data_points)
 }
 
 #[tokio::main]
