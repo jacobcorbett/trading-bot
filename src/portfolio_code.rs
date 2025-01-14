@@ -24,7 +24,7 @@ pub struct Portfolio {
     pub open_trades: Vec<trade_position>,
 }
 
-fn lines_from_file(filename: impl AsRef<Path>) -> Vec<String> {
+pub fn lines_from_file(filename: impl AsRef<Path>) -> Vec<String> {
     let file = File::open(filename).expect("no such file");
     let buf = BufReader::new(file);
     buf.lines()
@@ -32,7 +32,7 @@ fn lines_from_file(filename: impl AsRef<Path>) -> Vec<String> {
         .collect()
 }
 
-fn get_files_in_directory(path: &str) -> io::Result<Vec<String>> {
+pub fn get_files_in_directory(path: &str) -> io::Result<Vec<String>> {
     // https://www.thorsten-hans.com/weekly-rust-trivia-get-all-files-in-a-directory/
     // Get a list of all entries in the folder
     let entries = fs::read_dir(path)?;
