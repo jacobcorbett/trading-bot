@@ -1,22 +1,16 @@
-use chrono::Local;
-use dotenv::dotenv;
-use reqwest::{Error, Response};
-use serde_json::Value;
-use std::collections::hash_set::Difference;
-use std::f64::consts::PI;
-use std::fs;
-use std::process::exit;
-use std::thread;
-use std::time;
-use std::time::Duration;
-use std::{collections::HashMap, env};
-use uuid::Uuid;
-
 use crate::api;
 use crate::portfolio_code;
 use crate::portfolio_code::Portfolio;
 use crate::trade;
 
+use chrono::{Duration, Local, NaiveDate};
+use std::collections::HashMap;
+use std::fs;
+use std::process::exit;
+use std::thread;
+use std::time;
+use std::time::Duration as StdDuration;
+use uuid::Uuid;
 #[derive(Debug)]
 struct moving_average {
     date: String,
@@ -180,7 +174,8 @@ pub fn percentage_change_trigger_algo(mut portfolio: Portfolio) -> Portfolio {
 
 pub fn moving_average_crossover_algo(mut portfolio: Portfolio) -> Portfolio {
     log::info!("User entered Moving average crossover algorithm");
-    let tickers_to_watch: Vec<&str> = vec!["AMD", "AAPL", "NVDA", "TSLA", "O"];
+    //let tickers_to_watch: Vec<&str> = vec!["AMD", "AAPL", "NVDA", "TSLA", "O"];
+    let tickers_to_watch: Vec<&str> = vec!["AMD"];
 
     portfolio.cash_balance = 1000.0;
     println!("!ALGO MODE (Moving Average Crossover)!");
@@ -202,12 +197,13 @@ pub fn moving_average_crossover_algo(mut portfolio: Portfolio) -> Portfolio {
             fifty_day_moving_averages: Vec::new(),
         });
     }
-    let today = Local::now().date_naive();
-    let formatted_date = today.format("%Y-%m-%d").to_string();
-
-    dbg!(formatted_date);
 
     loop {
+        let today = Local::now().date_naive();
+        let yesterday = today - Duration::days(1);
+        let today_formatted_date = today.format("%Y-%m-%d").to_string();
+        let yesterday_formatted_date = yesterday.format("%Y-%m-%d").to_string();
+
         for ticker in &tickers_to_watch {
             let stocks_with_historical_data =
                 match portfolio_code::get_files_in_directory("./stock_data/") {
@@ -254,33 +250,55 @@ pub fn moving_average_crossover_algo(mut portfolio: Portfolio) -> Portfolio {
                 (&all_data_lines[all_data_lines.len() - 10..]).to_vec();
 
             let mut sum: f32 = 0.0;
-            for day in fifty_days_history {
+            let mut fifty_date = "";
+            for day in &fifty_days_history {
                 let temp: Vec<&str> = day.split(':').collect();
-                sum += temp[1].parse::<f32>().expect("FAILED TO PARSE f32")
+                sum += temp[1].parse::<f32>().expect("FAILED TO PARSE f32");
+                fifty_date = temp[0].clone();
             }
             let moving_average_ten = sum / 50.0;
 
             sum = 0.0;
-            for day in ten_days_history {
+            let mut ten_date = "";
+            for day in &ten_days_history {
                 let temp: Vec<&str> = day.split(':').collect();
-                sum += temp[1].parse::<f32>().expect("FAILED TO PARSE f32")
+                sum += temp[1].parse::<f32>().expect("FAILED TO PARSE f32");
+                ten_date = temp[0].clone();
             }
             let moving_average_fifty = sum / 10.0;
 
-            println!("{} 10 day moving average: {}", ticker, moving_average_ten);
-            println!("{} 50 day moving average: {}", ticker, moving_average_fifty);
-            let today = Local::now().date_naive();
-            let formatted_date = today.format("%Y-%m-%d").to_string();
+            println!(
+                "{} 10 day moving average: {}, on date: {}",
+                ticker, moving_average_ten, ten_date
+            );
+            println!(
+                "{} 50 day moving average: {}, on date: {}",
+                ticker, moving_average_fifty, fifty_date
+            );
 
             for mut stock in &mut historical_stock_data {
+                match stock.fifty_day_moving_averages.last() {
+                    Some(stock_data) => {
+                        if stock_data.date == today_formatted_date
+                            || stock_data.date == yesterday_formatted_date.clone()
+                        {
+                            println!("Already done today");
+                            break;
+                        }
+                    }
+                    None => {
+                        println!("none")
+                    }
+                }
+
                 if stock.ticker == *ticker {
                     let temp_ten_day_moving_average = moving_average {
                         average: moving_average_ten,
-                        date: formatted_date.clone(),
+                        date: ten_date.to_string(),
                     };
                     let temp_fifty_day_moving_average = moving_average {
                         average: moving_average_fifty,
-                        date: formatted_date.clone(),
+                        date: fifty_date.to_string(),
                     };
                     stock
                         .ten_day_moving_averages
@@ -293,28 +311,76 @@ pub fn moving_average_crossover_algo(mut portfolio: Portfolio) -> Portfolio {
         }
         dbg!(&historical_stock_data);
 
-        // wait here for x amount of time, if market open then run script
-        println!("waiting here for 24 hours");
-        thread::sleep(Duration::from_secs(60 * 60 * 24)); // Wait for 24 hours
-                                                          //
+        // if there is more than one moving average, then check if any trades should be opened
+        if historical_stock_data
+            .first()
+            .unwrap()
+            .fifty_day_moving_averages
+            .len()
+            > 0
+        {
+            let trade_size = 0.1; // 10% of account for each trade
 
-        // update all the stocks info
-        for ticker in &tickers_to_watch {
-            match api::get_20_years_old_historial_data(ticker) {
-                Ok(stock_data) => {
-                    println!("success downloading data");
-                    log::info!("Attemping to write data to file, ticker: {}", ticker);
-                    let path = "./stock_data/".to_owned() + ticker + ".txt";
-                    let data_to_write = stock_data.join("\n");
-                    fs::write(path, data_to_write).expect("Unable to write file");
-                    log::info!("Successfully written data to file, ticker: {}", ticker);
-                }
-                Err(e) => {
-                    eprintln!("error: {}", e)
+            for stock in &historical_stock_data {
+                for i in 0..stock.fifty_day_moving_averages.len() {
+                    println!(
+                        "ticker: {}, 10-day: {:?}, 50-day: {:?}",
+                        stock.ticker,
+                        stock.ten_day_moving_averages[i].average,
+                        stock.fifty_day_moving_averages[i].average
+                    );
+                    todo!() // FINISH
                 }
             }
         }
-    }
 
-    portfolio
+        // wait here for x amount of time, if market open then run script
+        println!("waiting here for 24 hours");
+
+        // thread::sleep(StdDuration::from_secs(24 * 60 * 60)); // Wait for 24 hours
+        thread::sleep(StdDuration::from_secs(5)); // Wait for 24 hours
+
+        // update all the stocks info
+        //
+
+        // if the last data in the vector is today or yesterday mark as true
+        let up_to_date_data: bool = match historical_stock_data.last() {
+            Some(stock_data) => match stock_data.fifty_day_moving_averages.last() {
+                Some(value) => {
+                    if value.date == today_formatted_date.clone()
+                        || value.date == yesterday_formatted_date.clone()
+                    {
+                        true
+                    } else {
+                        false
+                    }
+                }
+                None => false,
+            },
+
+            None => false,
+        };
+
+        // only try to get more updated stock information if we dont have the latest data
+        if up_to_date_data == false {
+            println!("new data potenial");
+            for ticker in &tickers_to_watch {
+                match api::get_20_years_old_historial_data(ticker) {
+                    Ok(stock_data) => {
+                        println!("success downloading data");
+                        log::info!("Attemping to write data to file, ticker: {}", ticker);
+                        let path = "./stock_data/".to_owned() + ticker + ".txt";
+                        let data_to_write = stock_data.join("\n");
+                        fs::write(path, data_to_write).expect("Unable to write file");
+                        log::info!("Successfully written data to file, ticker: {}", ticker);
+                    }
+                    Err(e) => {
+                        eprintln!("error: {}", e)
+                    }
+                }
+            }
+        } else {
+            println!("no new data");
+        }
+    }
 }
