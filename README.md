@@ -115,13 +115,16 @@ You can follow along with the entire journey here: [YouTube Playlist](https://ww
 <!-- GETTING STARTED -->
 ## Getting Started
 
-This is an example of how you may give instructions on setting up your project locally.
-To get a local copy up and running follow these simple example steps.
+This section provides instructions for setting up the project locally. Follow the steps below to get a local copy up and running.
+
 
 ### Prerequisites
-
-You must have a [Finnhub](https://finnhub.io/) and [Alpha Vantage](https://www.alphavantage.co/) API key, In the format belwow in a .env file in root.
-- .env file
+Ensure you have the following installed on your system:
+- [Rust](https://www.rust-lang.org/tools/install) (latest stable version)
+- [Cargo](https://doc.rust-lang.org/cargo/) (comes with Rust)
+- Git (for cloning the repository)
+- You must have a [Finnhub](https://finnhub.io/) and [Alpha Vantage](https://www.alphavantage.co/) API key, In the format belwow in a .env file in root.
+  
   ```text
   FINHUB_API_KEY=key
   ALPHA_API_KEY=key
@@ -256,7 +259,7 @@ Distributed under the project_license. See `LICENSE.txt` for more information.
 <!-- CONTACT -->
 ## Contact
 
-Your Name -  - dev@jacobcorbett.com
+Your Name -  dev@jacobcorbett.com
 
 Project Link: [https://github.com/jacobcorbett/trading-bot](https://github.com/jacobcorbett/trading-bot)
 
