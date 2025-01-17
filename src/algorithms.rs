@@ -5,6 +5,7 @@ use crate::trade;
 
 use chrono::{Duration, Local, NaiveDate};
 use std::collections::HashMap;
+use std::collections::HashSet;
 use std::fs;
 use std::process::exit;
 use std::thread;
@@ -22,6 +23,20 @@ struct moving_average_stock {
     ticker: String,
     ten_day_moving_averages: Vec<moving_average>,
     fifty_day_moving_averages: Vec<moving_average>,
+}
+
+fn find_moving_average(days_data: Vec<String>) -> (f32, String) {
+    let mut sum: f32 = 0.0;
+    let mut date = "";
+    for day in &days_data {
+        let temp: Vec<&str> = day.split(':').collect();
+        sum += temp[1].parse::<f32>().expect("FAILED TO PARSE f32");
+        date = temp[0];
+    }
+
+    let average = sum / days_data.len() as f32;
+
+    return (average, date.to_string());
 }
 
 pub fn percentage_change_trigger_algo(mut portfolio: Portfolio) -> Portfolio {
@@ -189,6 +204,47 @@ pub fn moving_average_crossover_algo(mut portfolio: Portfolio) -> Portfolio {
     // Moving average, = (Sum(closing prices over the period))/(number days )
     //
 
+    // // if the last data in the vector is today or yesterday mark as true
+    // let up_to_date_data: bool = match historical_stock_data.last() {
+    //     Some(stock_data) => match stock_data.fifty_day_moving_averages.last() {
+    //         Some(value) => {
+    //             if value.date == today_formatted_date.clone()
+    //                 || value.date == yesterday_formatted_date.clone()
+    //             {
+    //                 true
+    //             } else {
+    //                 false
+    //             }
+    //         }
+    //         None => false,
+    //     },
+
+    //     None => false,
+    // };
+
+    // let up_to_date_data = false;
+    // // only try to get more updated stock information if we dont have the latest data
+    // if up_to_date_data == false {
+    //     println!("new data potenial");
+    //     for ticker in &tickers_to_watch {
+    //         match api::get_20_years_old_historial_data(ticker) {
+    //             Ok(stock_data) => {
+    //                 println!("success downloading data");
+    //                 log::info!("Attemping to write data to file, ticker: {}", ticker);
+    //                 let path = "./stock_data/".to_owned() + ticker + ".txt";
+    //                 let data_to_write = stock_data.join("\n");
+    //                 fs::write(path, data_to_write).expect("Unable to write file");
+    //                 log::info!("Successfully written data to file, ticker: {}", ticker);
+    //             }
+    //             Err(e) => {
+    //                 eprintln!("error: {}", e)
+    //             }
+    //         }
+    //     }
+    // } else {
+    //     println!("no new data");
+    // }
+
     let mut historical_stock_data: Vec<moving_average_stock> = Vec::new();
     for stock in &tickers_to_watch {
         historical_stock_data.push(moving_average_stock {
@@ -244,143 +300,174 @@ pub fn moving_average_crossover_algo(mut portfolio: Portfolio) -> Portfolio {
 
             let all_data_lines =
                 portfolio_code::lines_from_file("./stock_data/".to_owned() + ticker + ".txt");
+
             let fifty_days_history: Vec<String> =
                 (&all_data_lines[all_data_lines.len() - 50..]).to_vec();
+            let one_day_old_fifty_days_history: Vec<String> =
+                (&all_data_lines[all_data_lines.len() - 51..all_data_lines.len() - 1]).to_vec();
+            let two_day_old_fifty_days_history: Vec<String> =
+                (&all_data_lines[all_data_lines.len() - 52..all_data_lines.len() - 2]).to_vec();
+            let three_day_old_fifty_days_history: Vec<String> =
+                (&all_data_lines[all_data_lines.len() - 53..all_data_lines.len() - 3]).to_vec();
+
             let ten_days_history: Vec<String> =
                 (&all_data_lines[all_data_lines.len() - 10..]).to_vec();
+            let one_day_old_ten_days_history: Vec<String> =
+                (&all_data_lines[all_data_lines.len() - 11..all_data_lines.len() - 1]).to_vec();
+            let two_day_old_ten_days_history: Vec<String> =
+                (&all_data_lines[all_data_lines.len() - 12..all_data_lines.len() - 2]).to_vec();
+            let three_day_old_ten_days_history: Vec<String> =
+                (&all_data_lines[all_data_lines.len() - 13..all_data_lines.len() - 3]).to_vec();
 
-            let mut sum: f32 = 0.0;
-            let mut fifty_date = "";
-            for day in &fifty_days_history {
-                let temp: Vec<&str> = day.split(':').collect();
-                sum += temp[1].parse::<f32>().expect("FAILED TO PARSE f32");
-                fifty_date = temp[0].clone();
-            }
-            let moving_average_ten = sum / 50.0;
+            // let mut sum: f32 = 0.0;
+            // let mut fifty_date = "";
+            // for day in &fifty_days_history {
+            //     let temp: Vec<&str> = day.split(':').collect();
+            //     sum += temp[1].parse::<f32>().expect("FAILED TO PARSE f32");
+            //     fifty_date = temp[0].clone();
+            // }
+            // let moving_average_ten = sum / 50.0;
 
-            sum = 0.0;
-            let mut ten_date = "";
-            for day in &ten_days_history {
-                let temp: Vec<&str> = day.split(':').collect();
-                sum += temp[1].parse::<f32>().expect("FAILED TO PARSE f32");
-                ten_date = temp[0].clone();
-            }
-            let moving_average_fifty = sum / 10.0;
+            // sum = 0.0;
+            // let mut ten_date = "";
+            // for day in &ten_days_history {
+            //     let temp: Vec<&str> = day.split(':').collect();
+            //     sum += temp[1].parse::<f32>().expect("FAILED TO PARSE f32");
+            //     ten_date = temp[0].clone();
+            // }
+            // let moving_average_fifty = sum / 10.0;
 
-            println!(
-                "{} 10 day moving average: {}, on date: {}",
-                ticker, moving_average_ten, ten_date
-            );
-            println!(
-                "{} 50 day moving average: {}, on date: {}",
-                ticker, moving_average_fifty, fifty_date
-            );
+            // println!(
+            //     "{} 10 day moving average: {}, on date: {}",
+            //     ticker, moving_average_ten, ten_date
+            // );
+            // println!(
+            //     "{} 50 day moving average: {}, on date: {}",
+            //     ticker, moving_average_fifty, fifty_date
+            // );
 
-            for mut stock in &mut historical_stock_data {
-                match stock.fifty_day_moving_averages.last() {
-                    Some(stock_data) => {
-                        if stock_data.date == today_formatted_date
-                            || stock_data.date == yesterday_formatted_date.clone()
-                        {
-                            println!("Already done today");
-                            break;
-                        }
-                    }
-                    None => {
-                        println!("none")
-                    }
-                }
+            //     for mut stock in &mut historical_stock_data {
+            //         match stock.fifty_day_moving_averages.last() {
+            //             Some(stock_data) => {
+            //                 if stock_data.date == today_formatted_date
+            //                     || stock_data.date == yesterday_formatted_date.clone()
+            //                 {
+            //                     println!("Already done today");
+            //                     break;
+            //                 }
+            //             }
+            //             None => {
+            //                 println!("none")
+            //             }
+            //         }
 
-                if stock.ticker == *ticker {
-                    let temp_ten_day_moving_average = moving_average {
-                        average: moving_average_ten,
-                        date: ten_date.to_string(),
-                    };
-                    let temp_fifty_day_moving_average = moving_average {
-                        average: moving_average_fifty,
-                        date: fifty_date.to_string(),
-                    };
-                    stock
-                        .ten_day_moving_averages
-                        .push(temp_ten_day_moving_average);
-                    stock
-                        .fifty_day_moving_averages
-                        .push(temp_fifty_day_moving_average);
-                }
+            //         if stock.ticker == *ticker {
+            //             let temp_ten_day_moving_average = moving_average {
+            //                 average: moving_average_ten,
+            //                 date: ten_date.to_string(),
+            //             };
+            //             let temp_fifty_day_moving_average = moving_average {
+            //                 average: moving_average_fifty,
+            //                 date: fifty_date.to_string(),
+            //             };
+            //             stock
+            //                 .ten_day_moving_averages
+            //                 .push(temp_ten_day_moving_average);
+            //             stock
+            //                 .fifty_day_moving_averages
+            //                 .push(temp_fifty_day_moving_average);
+            //         }
+            //
+            //
+            //   }
+            //
+            //
+
+            for stock in &mut historical_stock_data {
+                // ten days
+                let (average, date) = find_moving_average(ten_days_history.clone());
+                stock.ten_day_moving_averages.push(moving_average {
+                    average: average,
+                    date: date,
+                });
+
+                let (average, date) = find_moving_average(one_day_old_ten_days_history.clone());
+                stock.ten_day_moving_averages.push(moving_average {
+                    average: average,
+                    date: date,
+                });
+                let (average, date) = find_moving_average(two_day_old_ten_days_history.clone());
+                stock.ten_day_moving_averages.push(moving_average {
+                    average: average,
+                    date: date,
+                });
+                let (average, date) = find_moving_average(three_day_old_ten_days_history.clone());
+                stock.ten_day_moving_averages.push(moving_average {
+                    average: average,
+                    date: date,
+                });
+                // fifty days
+                let (average, date) = find_moving_average(fifty_days_history.clone());
+                stock.fifty_day_moving_averages.push(moving_average {
+                    average: average,
+                    date: date,
+                });
+                let (average, date) = find_moving_average(one_day_old_fifty_days_history.clone());
+                stock.fifty_day_moving_averages.push(moving_average {
+                    average: average,
+                    date: date,
+                });
+                let (average, date) = find_moving_average(two_day_old_fifty_days_history.clone());
+                stock.fifty_day_moving_averages.push(moving_average {
+                    average: average,
+                    date: date,
+                });
+                let (average, date) = find_moving_average(three_day_old_fifty_days_history.clone());
+                stock.fifty_day_moving_averages.push(moving_average {
+                    average: average,
+                    date: date,
+                });
             }
         }
-        dbg!(&historical_stock_data);
-
-        // if there is more than one moving average, then check if any trades should be opened
-        if historical_stock_data
-            .first()
-            .unwrap()
-            .fifty_day_moving_averages
-            .len()
-            > 0
-        {
-            let trade_size = 0.1; // 10% of account for each trade
-
-            for stock in &historical_stock_data {
-                for i in 0..stock.fifty_day_moving_averages.len() {
-                    println!(
-                        "ticker: {}, 10-day: {:?}, 50-day: {:?}",
-                        stock.ticker,
-                        stock.ten_day_moving_averages[i].average,
-                        stock.fifty_day_moving_averages[i].average
-                    );
-                    todo!() // FINISH
-                }
-            }
-        }
-
-        // wait here for x amount of time, if market open then run script
-        println!("waiting here for 24 hours");
-
-        // thread::sleep(StdDuration::from_secs(24 * 60 * 60)); // Wait for 24 hours
-        thread::sleep(StdDuration::from_secs(5)); // Wait for 24 hours
-
-        // update all the stocks info
+        //
         //
 
-        // if the last data in the vector is today or yesterday mark as true
-        let up_to_date_data: bool = match historical_stock_data.last() {
-            Some(stock_data) => match stock_data.fifty_day_moving_averages.last() {
-                Some(value) => {
-                    if value.date == today_formatted_date.clone()
-                        || value.date == yesterday_formatted_date.clone()
-                    {
-                        true
-                    } else {
-                        false
-                    }
-                }
-                None => false,
-            },
+        dbg!(&historical_stock_data);
 
-            None => false,
-        };
+        let trade_size = 0.1; // 10% of account for each trade
 
-        // only try to get more updated stock information if we dont have the latest data
-        if up_to_date_data == false {
-            println!("new data potenial");
-            for ticker in &tickers_to_watch {
-                match api::get_20_years_old_historial_data(ticker) {
-                    Ok(stock_data) => {
-                        println!("success downloading data");
-                        log::info!("Attemping to write data to file, ticker: {}", ticker);
-                        let path = "./stock_data/".to_owned() + ticker + ".txt";
-                        let data_to_write = stock_data.join("\n");
-                        fs::write(path, data_to_write).expect("Unable to write file");
-                        log::info!("Successfully written data to file, ticker: {}", ticker);
-                    }
-                    Err(e) => {
-                        eprintln!("error: {}", e)
-                    }
-                }
+        for stock in &historical_stock_data {
+            for i in 1..stock.fifty_day_moving_averages.len() {
+                // println!(
+                //     "{}, ticker: {}, 10-day: {:?}, 50-day: {:?}",
+                //     stock.fifty_day_moving_averages[i].date,
+                //     stock.ticker,
+                //     stock.ten_day_moving_averages[i].average,
+                //     stock.fifty_day_moving_averages[i].average
+                // );
+                //
+                println!("Bullish?: Prev 10-day: {} < Prev 50-day: {} and current 10-day: {} > current 50-day: {}",
+                    stock.ten_day_moving_averages[i-1].average,
+                    stock.fifty_day_moving_averages[i-1].average,
+                    stock.ten_day_moving_averages[i].average,
+                    stock.fifty_day_moving_averages[i].average);
+
+                println!("Bearish?: Prev 10-day: {} > Prev 50-day: {} and current 10-day: {} < current 50-day: {}",
+                    stock.ten_day_moving_averages[i-1].average,
+                    stock.fifty_day_moving_averages[i-1].average,
+                    stock.ten_day_moving_averages[i].average,
+                    stock.fifty_day_moving_averages[i].average);
             }
-        } else {
-            println!("no new data");
+
+            todo!(); // impliment above checks to maybe make a trade
+                     // wait here for x amount of time, if market open then run script
+            println!("waiting here for 24 hours");
+
+            // thread::sleep(StdDuration::from_secs(24 * 60 * 60)); // Wait for 24 hours
+            thread::sleep(StdDuration::from_secs(5)); // Wait for 24 hours
+
+            // update all the stocks info
+            //
         }
     }
 }
