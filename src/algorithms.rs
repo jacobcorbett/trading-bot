@@ -258,6 +258,9 @@ pub fn moving_average_crossover_algo(mut portfolio: Portfolio) -> Portfolio {
     //let tickers_to_watch: Vec<&str> = vec!["AMD", "AAPL", "NVDA", "TSLA", "O"];
     let tickers_to_watch: Vec<&str> = vec!["NVDA"];
 
+    todo!("FORCE SAVE FILE");
+    // eg name it and it will be used, if it already exists then load it if not create one
+
     portfolio.cash_balance = 1000.0;
     println!("!ALGO MODE (Moving Average Crossover)!");
     println!("Starting with ${}", portfolio.cash_balance);
@@ -338,14 +341,6 @@ pub fn moving_average_crossover_algo(mut portfolio: Portfolio) -> Portfolio {
 
         for stock in &historical_stock_data {
             for i in 1..stock.fifty_day_moving_averages.len() {
-                // println!(
-                //     "{}, ticker: {}, 10-day: {:?}, 50-day: {:?}",
-                //     stock.fifty_day_moving_averages[i].date,
-                //     stock.ticker,
-                //     stock.ten_day_moving_averages[i].average,
-                //     stock.fifty_day_moving_averages[i].average
-                // );
-                //
                 println!("Bullish? ({}): Prev 10-day: {} < Prev 50-day: {} and current 10-day: {} > current 50-day: {}",
                     stock.ten_day_moving_averages[i].date,
                     stock.ten_day_moving_averages[i-1].average,
