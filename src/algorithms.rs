@@ -85,17 +85,17 @@ fn check_and_if_old_download_new_stock_data(tickers_watching: Vec<&str>) {
         if file_exisits_and_updated == false {
             log::info!("File does not exist in /stocks_data dir");
             println!(
-                "ticker: {}, does not have any data, attempting to download now...",
+                "ticker: {}, does not have any data and or is out of date, attempting to download now...",
                 ticker
             );
             match api::get_20_years_old_historial_data(ticker) {
                 Ok(stock_data) => {
-                    println!("success downloading data");
                     log::info!("Attemping to write data to file, ticker: {}", ticker);
                     let path = "./stock_data/".to_owned() + ticker + ".txt";
                     let data_to_write = stock_data.join("\n");
                     fs::write(path, data_to_write).expect("Unable to write file");
                     log::info!("Successfully written data to file, ticker: {}", ticker);
+                    println!("Success downloading data");
                 }
                 Err(e) => {
                     log::error!("Error attempting to download new ticker data: {}", e)
@@ -286,7 +286,7 @@ pub fn moving_average_crossover_algo(mut portfolio: Portfolio) -> Portfolio {
         let all_data_lines =
             portfolio_code::lines_from_file("./stock_data/".to_owned() + ticker + ".txt");
 
-        let history_offsets: Vec<usize> = (0..1000).collect();
+        let history_offsets: Vec<usize> = (0..2).collect();
 
         let fifty_days_histories: Vec<Vec<String>> = history_offsets
             .iter()
@@ -330,9 +330,10 @@ pub fn moving_average_crossover_algo(mut portfolio: Portfolio) -> Portfolio {
     // - all the files exsit
 
     loop {
-        // let today = Local::now().date_naive();
+        check_and_if_old_download_new_stock_data(tickers_to_watch.clone());
+        let today = Local::now().date_naive();
         //let yesterday = today - Duration::days(1);
-        // let today_formatted_date = today.format("%Y-%m-%d").to_string();
+        let today_formatted_date = today.format("%Y-%m-%d").to_string();
         // let yesterday_formatted_date = yesterday.format("%Y-%m-%d").to_string();
 
         for stock in &historical_stock_data {
@@ -358,6 +359,19 @@ pub fn moving_average_crossover_algo(mut portfolio: Portfolio) -> Portfolio {
                         > stock.fifty_day_moving_averages[i].average
                 {
                     println!("BULLISH ALERT");
+                    let price_per_share =
+                        match api::finnhub_get_current_stock_price(&stock.ticker.to_string()) {
+                            Ok(price) => price,
+                            Err(e) => {
+                                eprintln!("Error fetching inital stock price for algo: {}", e);
+                                return portfolio;
+                            }
+                        };
+
+                    println!(
+                        "OPEN LONG OF {} at ${}, {}",
+                        stock.ticker, price_per_share, today_formatted_date
+                    )
                 }
 
                 println!("Bearish? ({}): Prev 10-day: {} > Prev 50-day: {} and current 10-day: {} < current 50-day: {}",
@@ -373,11 +387,23 @@ pub fn moving_average_crossover_algo(mut portfolio: Portfolio) -> Portfolio {
                         < stock.fifty_day_moving_averages[i].average
                 {
                     println!("BEARISH ALERT");
+                    let price_per_share =
+                        match api::finnhub_get_current_stock_price(&stock.ticker.to_string()) {
+                            Ok(price) => price,
+                            Err(e) => {
+                                eprintln!("Error fetching inital stock price for algo: {}", e);
+                                return portfolio;
+                            }
+                        };
+                    println!(
+                        "OPEN SHORT OF {} at ${}, {}",
+                        stock.ticker, price_per_share, today_formatted_date
+                    )
                 }
             }
 
             // thread::sleep(StdDuration::from_secs(24 * 60 * 60)); // Wait for 24 hours
-            thread::sleep(StdDuration::from_secs(5)); // wait 5 secs
+            thread::sleep(StdDuration::from_secs(60 * 60)); // wait 1 hour
 
             // update all the stocks info
             //
