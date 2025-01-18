@@ -277,55 +277,60 @@ pub fn moving_average_crossover_algo(mut portfolio: Portfolio) -> Portfolio {
     }
     // End 2
     //
-    // 3. Start main algo loop
+    // 3, Create the inital 4, data points for the moving average
 
-    loop {
-        let today = Local::now().date_naive();
-        let yesterday = today - Duration::days(1);
-        // let today_formatted_date = today.format("%Y-%m-%d").to_string();
-        // let yesterday_formatted_date = yesterday.format("%Y-%m-%d").to_string();
+    for ticker in &tickers_to_watch {
+        let all_data_lines =
+            portfolio_code::lines_from_file("./stock_data/".to_owned() + ticker + ".txt");
 
-        for ticker in &tickers_to_watch {
-            let all_data_lines =
-                portfolio_code::lines_from_file("./stock_data/".to_owned() + ticker + ".txt");
+        let history_offsets = vec![0, 1, 2, 3];
 
-            let history_offsets = vec![0, 1, 2, 3];
+        let fifty_days_histories: Vec<Vec<String>> = history_offsets
+            .iter()
+            .map(|offset| {
+                (&all_data_lines[all_data_lines.len() - 50 - offset..all_data_lines.len() - offset])
+                    .to_vec()
+            })
+            .collect();
 
-            let fifty_days_histories: Vec<Vec<String>> = history_offsets
-                .iter()
-                .map(|offset| {
-                    (&all_data_lines
-                        [all_data_lines.len() - 50 - offset..all_data_lines.len() - offset])
-                        .to_vec()
-                })
-                .collect();
+        let ten_days_histories: Vec<Vec<String>> = history_offsets
+            .iter()
+            .map(|offset| {
+                (&all_data_lines[all_data_lines.len() - 10 - offset..all_data_lines.len() - offset])
+                    .to_vec()
+            })
+            .collect();
+        for stock in &mut historical_stock_data {
+            // push 50 day averages
+            for history in &fifty_days_histories {
+                let (average, date) = find_moving_average(history.clone());
+                stock
+                    .fifty_day_moving_averages
+                    .push(moving_average { average, date })
+            }
 
-            let ten_days_histories: Vec<Vec<String>> = history_offsets
-                .iter()
-                .map(|offset| {
-                    (&all_data_lines
-                        [all_data_lines.len() - 10 - offset..all_data_lines.len() - offset])
-                        .to_vec()
-                })
-                .collect();
-            for stock in &mut historical_stock_data {
-                // push 50 day averages
-                for history in &fifty_days_histories {
-                    let (average, date) = find_moving_average(history.clone());
-                    stock
-                        .fifty_day_moving_averages
-                        .push(moving_average { average, date })
-                }
-
-                // push 10 day averages
-                for history in &ten_days_histories {
-                    let (average, date) = find_moving_average(history.clone());
-                    stock
-                        .ten_day_moving_averages
-                        .push(moving_average { average, date })
-                }
+            // push 10 day averages
+            for history in &ten_days_histories {
+                let (average, date) = find_moving_average(history.clone());
+                stock
+                    .ten_day_moving_averages
+                    .push(moving_average { average, date })
             }
         }
+    }
+    // End 3
+    //
+    // 4, Start main loop
+    //
+    // Assume when the loop is first running that:
+    // - All the data is up to date
+    // - all the files exsit
+
+    loop {
+        // let today = Local::now().date_naive();
+        //let yesterday = today - Duration::days(1);
+        // let today_formatted_date = today.format("%Y-%m-%d").to_string();
+        // let yesterday_formatted_date = yesterday.format("%Y-%m-%d").to_string();
 
         dbg!(&historical_stock_data);
 
