@@ -39,6 +39,72 @@ fn find_moving_average(days_data: Vec<String>) -> (f32, String) {
     return (average, date.to_string());
 }
 
+fn check_and_if_old_download_new_stock_data(tickers_watching: Vec<&str>) {
+    for ticker in &tickers_watching {
+        // Vector containg all file names
+        let file_names_in_stock_data_directory: Vec<String> =
+            match portfolio_code::get_files_in_directory("./stock_data/") {
+                Ok(save_files_names) => save_files_names,
+                Err(e) => {
+                    eprintln!("failed");
+                    log::error!("Failed to get files in /stock_data dir: {}", e);
+                    break;
+                }
+            };
+
+        let mut file_exisits_and_updated = false;
+
+        for file in file_names_in_stock_data_directory {
+            if ticker.to_owned().to_owned() + ".txt" == file {
+                // File exsits, but check the data of the most recent data point.
+                let data_lines: Vec<String> =
+                    portfolio_code::lines_from_file("./stock_data/".to_owned() + ticker + ".txt");
+
+                let last_line = &data_lines[data_lines.len() - 1];
+                let temp: Vec<&str> = last_line.split(':').collect();
+                let date_of_last_line = temp[0];
+
+                let today = Local::now().date_naive();
+                let yesterday = today - Duration::days(1);
+                let today_formatted_date = today.format("%Y-%m-%d").to_string();
+                let yesterday_formatted_date = yesterday.format("%Y-%m-%d").to_string();
+
+                if date_of_last_line == today_formatted_date
+                    || date_of_last_line == yesterday_formatted_date
+                {
+                    file_exisits_and_updated = true;
+                    log::info!("ticker: {}, has file and is in data", ticker);
+                } else {
+                    log::info!("ticker: {}, had file but was out of date", ticker);
+                    log::info!("going to attempt to download data for ticker: {}", ticker);
+                }
+            }
+        }
+
+        // If we dont have data on a ticker, then download the data.
+        if file_exisits_and_updated == false {
+            log::info!("File does not exist in /stocks_data dir");
+            println!(
+                "ticker: {}, does not have any data, attempting to download now...",
+                ticker
+            );
+            match api::get_20_years_old_historial_data(ticker) {
+                Ok(stock_data) => {
+                    println!("success downloading data");
+                    log::info!("Attemping to write data to file, ticker: {}", ticker);
+                    let path = "./stock_data/".to_owned() + ticker + ".txt";
+                    let data_to_write = stock_data.join("\n");
+                    fs::write(path, data_to_write).expect("Unable to write file");
+                    log::info!("Successfully written data to file, ticker: {}", ticker);
+                }
+                Err(e) => {
+                    log::error!("Error attempting to download new ticker data: {}", e)
+                }
+            }
+        }
+    }
+}
+
 pub fn percentage_change_trigger_algo(mut portfolio: Portfolio) -> Portfolio {
     log::info!("User entered Percentage Change trigger algorithm");
     /*
@@ -190,7 +256,7 @@ pub fn percentage_change_trigger_algo(mut portfolio: Portfolio) -> Portfolio {
 pub fn moving_average_crossover_algo(mut portfolio: Portfolio) -> Portfolio {
     log::info!("User entered Moving average crossover algorithm");
     //let tickers_to_watch: Vec<&str> = vec!["AMD", "AAPL", "NVDA", "TSLA", "O"];
-    let tickers_to_watch: Vec<&str> = vec!["AMD"];
+    let tickers_to_watch: Vec<&str> = vec!["NVDA"];
 
     portfolio.cash_balance = 1000.0;
     println!("!ALGO MODE (Moving Average Crossover)!");
@@ -211,70 +277,7 @@ pub fn moving_average_crossover_algo(mut portfolio: Portfolio) -> Portfolio {
     //
     // 2, Check if we already have data on a certain stock
     // If we do, check if its got up to date data and is not old
-
-    for ticker in &tickers_to_watch {
-        // Vector containg all file names
-        let file_names_in_stock_data_directory: Vec<String> =
-            match portfolio_code::get_files_in_directory("./stock_data/") {
-                Ok(save_files_names) => save_files_names,
-                Err(e) => {
-                    eprintln!("failed");
-                    log::error!("Failed to get files in /stock_data dir: {}", e);
-                    break;
-                }
-            };
-
-        let mut file_exisits_and_updated = false;
-
-        for file in file_names_in_stock_data_directory {
-            if ticker.to_owned().to_owned() + ".txt" == file {
-                // File exsits, but check the data of the most recent data point.
-                let data_lines: Vec<String> =
-                    portfolio_code::lines_from_file("./stock_data/".to_owned() + ticker + ".txt");
-
-                let last_line = &data_lines[data_lines.len() - 1];
-                let temp: Vec<&str> = last_line.split(':').collect();
-                let date_of_last_line = temp[0];
-
-                let today = Local::now().date_naive();
-                let yesterday = today - Duration::days(1);
-                let today_formatted_date = today.format("%Y-%m-%d").to_string();
-                let yesterday_formatted_date = yesterday.format("%Y-%m-%d").to_string();
-
-                if date_of_last_line == today_formatted_date
-                    || date_of_last_line == yesterday_formatted_date
-                {
-                    file_exisits_and_updated = true;
-                    log::info!("ticker: {}, has file and is in data", ticker);
-                } else {
-                    log::info!("ticker: {}, had file but was out of date", ticker);
-                    log::info!("going to attempt to download data for ticker: {}", ticker);
-                }
-            }
-        }
-
-        // If we dont have data on a ticker, then download the data.
-        if file_exisits_and_updated == false {
-            log::info!("File does not exist in /stocks_data dir");
-            println!(
-                "ticker: {}, does not have any data, attempting to download now...",
-                ticker
-            );
-            match api::get_20_years_old_historial_data(ticker) {
-                Ok(stock_data) => {
-                    println!("success downloading data");
-                    log::info!("Attemping to write data to file, ticker: {}", ticker);
-                    let path = "./stock_data/".to_owned() + ticker + ".txt";
-                    let data_to_write = stock_data.join("\n");
-                    fs::write(path, data_to_write).expect("Unable to write file");
-                    log::info!("Successfully written data to file, ticker: {}", ticker);
-                }
-                Err(e) => {
-                    log::error!("Error attempting to download new ticker data: {}", e)
-                }
-            }
-        }
-    }
+    check_and_if_old_download_new_stock_data(tickers_to_watch.clone());
     // End 2
     //
     // 3, Create the inital 4, data points for the moving average
@@ -283,7 +286,7 @@ pub fn moving_average_crossover_algo(mut portfolio: Portfolio) -> Portfolio {
         let all_data_lines =
             portfolio_code::lines_from_file("./stock_data/".to_owned() + ticker + ".txt");
 
-        let history_offsets = vec![0, 1, 2, 3];
+        let history_offsets: Vec<usize> = (0..1000).collect();
 
         let fifty_days_histories: Vec<Vec<String>> = history_offsets
             .iter()
@@ -332,10 +335,6 @@ pub fn moving_average_crossover_algo(mut portfolio: Portfolio) -> Portfolio {
         // let today_formatted_date = today.format("%Y-%m-%d").to_string();
         // let yesterday_formatted_date = yesterday.format("%Y-%m-%d").to_string();
 
-        dbg!(&historical_stock_data);
-
-        let trade_size = 0.1; // 10% of account for each trade
-
         for stock in &historical_stock_data {
             for i in 1..stock.fifty_day_moving_averages.len() {
                 // println!(
@@ -346,25 +345,39 @@ pub fn moving_average_crossover_algo(mut portfolio: Portfolio) -> Portfolio {
                 //     stock.fifty_day_moving_averages[i].average
                 // );
                 //
-                println!("Bullish?: Prev 10-day: {} < Prev 50-day: {} and current 10-day: {} > current 50-day: {}",
+                println!("Bullish? ({}): Prev 10-day: {} < Prev 50-day: {} and current 10-day: {} > current 50-day: {}",
+                    stock.ten_day_moving_averages[i].date,
                     stock.ten_day_moving_averages[i-1].average,
                     stock.fifty_day_moving_averages[i-1].average,
                     stock.ten_day_moving_averages[i].average,
                     stock.fifty_day_moving_averages[i].average);
 
-                println!("Bearish?: Prev 10-day: {} > Prev 50-day: {} and current 10-day: {} < current 50-day: {}",
+                if stock.ten_day_moving_averages[i - 1].average
+                    < stock.fifty_day_moving_averages[i - 1].average
+                    && stock.ten_day_moving_averages[i].average
+                        > stock.fifty_day_moving_averages[i].average
+                {
+                    println!("BULLISH ALERT");
+                }
+
+                println!("Bearish? ({}): Prev 10-day: {} > Prev 50-day: {} and current 10-day: {} < current 50-day: {}",
+                    stock.ten_day_moving_averages[i].date,
                     stock.ten_day_moving_averages[i-1].average,
                     stock.fifty_day_moving_averages[i-1].average,
                     stock.ten_day_moving_averages[i].average,
                     stock.fifty_day_moving_averages[i].average);
+
+                if stock.ten_day_moving_averages[i - 1].average
+                    > stock.fifty_day_moving_averages[i - 1].average
+                    && stock.ten_day_moving_averages[i].average
+                        < stock.fifty_day_moving_averages[i].average
+                {
+                    println!("BEARISH ALERT");
+                }
             }
 
-            todo!(); // impliment above checks to maybe make a trade
-                     // wait here for x amount of time, if market open then run script
-            println!("waiting here for 24 hours");
-
             // thread::sleep(StdDuration::from_secs(24 * 60 * 60)); // Wait for 24 hours
-            thread::sleep(StdDuration::from_secs(5)); // Wait for 24 hours
+            thread::sleep(StdDuration::from_secs(5)); // wait 5 secs
 
             // update all the stocks info
             //
