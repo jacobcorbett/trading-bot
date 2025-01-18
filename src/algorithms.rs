@@ -197,55 +197,9 @@ pub fn moving_average_crossover_algo(mut portfolio: Portfolio) -> Portfolio {
     println!("Starting with ${}", portfolio.cash_balance);
     println!("tickers watching: {:?}", tickers_to_watch);
 
-    // TODO GRAB HISTORICAL DATA FROM alphavantage
-    // maybe calucalte weekly average and compare to daily
-    // or mothly to weekly
-    //
-    // Moving average, = (Sum(closing prices over the period))/(number days )
-    //
-
-    // // if the last data in the vector is today or yesterday mark as true
-    // let up_to_date_data: bool = match historical_stock_data.last() {
-    //     Some(stock_data) => match stock_data.fifty_day_moving_averages.last() {
-    //         Some(value) => {
-    //             if value.date == today_formatted_date.clone()
-    //                 || value.date == yesterday_formatted_date.clone()
-    //             {
-    //                 true
-    //             } else {
-    //                 false
-    //             }
-    //         }
-    //         None => false,
-    //     },
-
-    //     None => false,
-    // };
-
-    // let up_to_date_data = false;
-    // // only try to get more updated stock information if we dont have the latest data
-    // if up_to_date_data == false {
-    //     println!("new data potenial");
-    //     for ticker in &tickers_to_watch {
-    //         match api::get_20_years_old_historial_data(ticker) {
-    //             Ok(stock_data) => {
-    //                 println!("success downloading data");
-    //                 log::info!("Attemping to write data to file, ticker: {}", ticker);
-    //                 let path = "./stock_data/".to_owned() + ticker + ".txt";
-    //                 let data_to_write = stock_data.join("\n");
-    //                 fs::write(path, data_to_write).expect("Unable to write file");
-    //                 log::info!("Successfully written data to file, ticker: {}", ticker);
-    //             }
-    //             Err(e) => {
-    //                 eprintln!("error: {}", e)
-    //             }
-    //         }
-    //     }
-    // } else {
-    //     println!("no new data");
-    // }
-
+    // 1, create main data holder, Vector of moving_average_stock
     let mut historical_stock_data: Vec<moving_average_stock> = Vec::new();
+
     for stock in &tickers_to_watch {
         historical_stock_data.push(moving_average_stock {
             ticker: stock.to_string(),
@@ -253,184 +207,125 @@ pub fn moving_average_crossover_algo(mut portfolio: Portfolio) -> Portfolio {
             fifty_day_moving_averages: Vec::new(),
         });
     }
+    // END 1
+    //
+    // 2, Check if we already have data on a certain stock
+    // If we do, check if its got up to date data and is not old
+
+    for ticker in &tickers_to_watch {
+        // Vector containg all file names
+        let file_names_in_stock_data_directory: Vec<String> =
+            match portfolio_code::get_files_in_directory("./stock_data/") {
+                Ok(save_files_names) => save_files_names,
+                Err(e) => {
+                    eprintln!("failed");
+                    log::error!("Failed to get files in /stock_data dir: {}", e);
+                    break;
+                }
+            };
+
+        let mut file_exisits_and_updated = false;
+
+        for file in file_names_in_stock_data_directory {
+            if ticker.to_owned().to_owned() + ".txt" == file {
+                // File exsits, but check the data of the most recent data point.
+                let data_lines: Vec<String> =
+                    portfolio_code::lines_from_file("./stock_data/".to_owned() + ticker + ".txt");
+
+                let last_line = &data_lines[data_lines.len() - 1];
+                let temp: Vec<&str> = last_line.split(':').collect();
+                let date_of_last_line = temp[0];
+
+                let today = Local::now().date_naive();
+                let yesterday = today - Duration::days(1);
+                let today_formatted_date = today.format("%Y-%m-%d").to_string();
+                let yesterday_formatted_date = yesterday.format("%Y-%m-%d").to_string();
+
+                if date_of_last_line == today_formatted_date
+                    || date_of_last_line == yesterday_formatted_date
+                {
+                    file_exisits_and_updated = true;
+                    log::info!("ticker: {}, has file and is in data", ticker);
+                } else {
+                    log::info!("ticker: {}, had file but was out of date", ticker);
+                    log::info!("going to attempt to download data for ticker: {}", ticker);
+                }
+            }
+        }
+
+        // If we dont have data on a ticker, then download the data.
+        if file_exisits_and_updated == false {
+            log::info!("File does not exist in /stocks_data dir");
+            println!(
+                "ticker: {}, does not have any data, attempting to download now...",
+                ticker
+            );
+            match api::get_20_years_old_historial_data(ticker) {
+                Ok(stock_data) => {
+                    println!("success downloading data");
+                    log::info!("Attemping to write data to file, ticker: {}", ticker);
+                    let path = "./stock_data/".to_owned() + ticker + ".txt";
+                    let data_to_write = stock_data.join("\n");
+                    fs::write(path, data_to_write).expect("Unable to write file");
+                    log::info!("Successfully written data to file, ticker: {}", ticker);
+                }
+                Err(e) => {
+                    log::error!("Error attempting to download new ticker data: {}", e)
+                }
+            }
+        }
+    }
+    // End 2
+    //
+    // 3. Start main algo loop
 
     loop {
         let today = Local::now().date_naive();
         let yesterday = today - Duration::days(1);
-        let today_formatted_date = today.format("%Y-%m-%d").to_string();
-        let yesterday_formatted_date = yesterday.format("%Y-%m-%d").to_string();
+        // let today_formatted_date = today.format("%Y-%m-%d").to_string();
+        // let yesterday_formatted_date = yesterday.format("%Y-%m-%d").to_string();
 
         for ticker in &tickers_to_watch {
-            let stocks_with_historical_data =
-                match portfolio_code::get_files_in_directory("./stock_data/") {
-                    Ok(save_files_names) => save_files_names,
-                    Err(e) => {
-                        eprintln!("failed");
-                        log::error!("Failed to get files in /stock_data dir: {}", e);
-                        break;
-                    }
-                };
-
-            let mut file_exisits = false;
-
-            for file in stocks_with_historical_data {
-                if ticker.to_owned().to_owned() + ".txt" == file {
-                    file_exisits = true;
-                }
-            }
-
-            if file_exisits == false {
-                log::info!("File does not exist in /stocks_data dir");
-                println!(
-                    "ticker: {}, does not have any data, attempting to download now...",
-                    ticker
-                );
-                match api::get_20_years_old_historial_data(ticker) {
-                    Ok(stock_data) => {
-                        println!("success downloading data");
-                        log::info!("Attemping to write data to file, ticker: {}", ticker);
-                        let path = "./stock_data/".to_owned() + ticker + ".txt";
-                        let data_to_write = stock_data.join("\n");
-                        fs::write(path, data_to_write).expect("Unable to write file");
-                        log::info!("Successfully written data to file, ticker: {}", ticker);
-                    }
-                    Err(e) => {}
-                }
-            }
-
             let all_data_lines =
                 portfolio_code::lines_from_file("./stock_data/".to_owned() + ticker + ".txt");
 
-            let fifty_days_history: Vec<String> =
-                (&all_data_lines[all_data_lines.len() - 50..]).to_vec();
-            let one_day_old_fifty_days_history: Vec<String> =
-                (&all_data_lines[all_data_lines.len() - 51..all_data_lines.len() - 1]).to_vec();
-            let two_day_old_fifty_days_history: Vec<String> =
-                (&all_data_lines[all_data_lines.len() - 52..all_data_lines.len() - 2]).to_vec();
-            let three_day_old_fifty_days_history: Vec<String> =
-                (&all_data_lines[all_data_lines.len() - 53..all_data_lines.len() - 3]).to_vec();
+            let history_offsets = vec![0, 1, 2, 3];
 
-            let ten_days_history: Vec<String> =
-                (&all_data_lines[all_data_lines.len() - 10..]).to_vec();
-            let one_day_old_ten_days_history: Vec<String> =
-                (&all_data_lines[all_data_lines.len() - 11..all_data_lines.len() - 1]).to_vec();
-            let two_day_old_ten_days_history: Vec<String> =
-                (&all_data_lines[all_data_lines.len() - 12..all_data_lines.len() - 2]).to_vec();
-            let three_day_old_ten_days_history: Vec<String> =
-                (&all_data_lines[all_data_lines.len() - 13..all_data_lines.len() - 3]).to_vec();
+            let fifty_days_histories: Vec<Vec<String>> = history_offsets
+                .iter()
+                .map(|offset| {
+                    (&all_data_lines
+                        [all_data_lines.len() - 50 - offset..all_data_lines.len() - offset])
+                        .to_vec()
+                })
+                .collect();
 
-            // let mut sum: f32 = 0.0;
-            // let mut fifty_date = "";
-            // for day in &fifty_days_history {
-            //     let temp: Vec<&str> = day.split(':').collect();
-            //     sum += temp[1].parse::<f32>().expect("FAILED TO PARSE f32");
-            //     fifty_date = temp[0].clone();
-            // }
-            // let moving_average_ten = sum / 50.0;
-
-            // sum = 0.0;
-            // let mut ten_date = "";
-            // for day in &ten_days_history {
-            //     let temp: Vec<&str> = day.split(':').collect();
-            //     sum += temp[1].parse::<f32>().expect("FAILED TO PARSE f32");
-            //     ten_date = temp[0].clone();
-            // }
-            // let moving_average_fifty = sum / 10.0;
-
-            // println!(
-            //     "{} 10 day moving average: {}, on date: {}",
-            //     ticker, moving_average_ten, ten_date
-            // );
-            // println!(
-            //     "{} 50 day moving average: {}, on date: {}",
-            //     ticker, moving_average_fifty, fifty_date
-            // );
-
-            //     for mut stock in &mut historical_stock_data {
-            //         match stock.fifty_day_moving_averages.last() {
-            //             Some(stock_data) => {
-            //                 if stock_data.date == today_formatted_date
-            //                     || stock_data.date == yesterday_formatted_date.clone()
-            //                 {
-            //                     println!("Already done today");
-            //                     break;
-            //                 }
-            //             }
-            //             None => {
-            //                 println!("none")
-            //             }
-            //         }
-
-            //         if stock.ticker == *ticker {
-            //             let temp_ten_day_moving_average = moving_average {
-            //                 average: moving_average_ten,
-            //                 date: ten_date.to_string(),
-            //             };
-            //             let temp_fifty_day_moving_average = moving_average {
-            //                 average: moving_average_fifty,
-            //                 date: fifty_date.to_string(),
-            //             };
-            //             stock
-            //                 .ten_day_moving_averages
-            //                 .push(temp_ten_day_moving_average);
-            //             stock
-            //                 .fifty_day_moving_averages
-            //                 .push(temp_fifty_day_moving_average);
-            //         }
-            //
-            //
-            //   }
-            //
-            //
-
+            let ten_days_histories: Vec<Vec<String>> = history_offsets
+                .iter()
+                .map(|offset| {
+                    (&all_data_lines
+                        [all_data_lines.len() - 10 - offset..all_data_lines.len() - offset])
+                        .to_vec()
+                })
+                .collect();
             for stock in &mut historical_stock_data {
-                // ten days
-                let (average, date) = find_moving_average(ten_days_history.clone());
-                stock.ten_day_moving_averages.push(moving_average {
-                    average: average,
-                    date: date,
-                });
+                // push 50 day averages
+                for history in &fifty_days_histories {
+                    let (average, date) = find_moving_average(history.clone());
+                    stock
+                        .fifty_day_moving_averages
+                        .push(moving_average { average, date })
+                }
 
-                let (average, date) = find_moving_average(one_day_old_ten_days_history.clone());
-                stock.ten_day_moving_averages.push(moving_average {
-                    average: average,
-                    date: date,
-                });
-                let (average, date) = find_moving_average(two_day_old_ten_days_history.clone());
-                stock.ten_day_moving_averages.push(moving_average {
-                    average: average,
-                    date: date,
-                });
-                let (average, date) = find_moving_average(three_day_old_ten_days_history.clone());
-                stock.ten_day_moving_averages.push(moving_average {
-                    average: average,
-                    date: date,
-                });
-                // fifty days
-                let (average, date) = find_moving_average(fifty_days_history.clone());
-                stock.fifty_day_moving_averages.push(moving_average {
-                    average: average,
-                    date: date,
-                });
-                let (average, date) = find_moving_average(one_day_old_fifty_days_history.clone());
-                stock.fifty_day_moving_averages.push(moving_average {
-                    average: average,
-                    date: date,
-                });
-                let (average, date) = find_moving_average(two_day_old_fifty_days_history.clone());
-                stock.fifty_day_moving_averages.push(moving_average {
-                    average: average,
-                    date: date,
-                });
-                let (average, date) = find_moving_average(three_day_old_fifty_days_history.clone());
-                stock.fifty_day_moving_averages.push(moving_average {
-                    average: average,
-                    date: date,
-                });
+                // push 10 day averages
+                for history in &ten_days_histories {
+                    let (average, date) = find_moving_average(history.clone());
+                    stock
+                        .ten_day_moving_averages
+                        .push(moving_average { average, date })
+                }
             }
         }
-        //
-        //
 
         dbg!(&historical_stock_data);
 
