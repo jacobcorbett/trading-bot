@@ -37,7 +37,15 @@ pub fn algorithm_menu_function(mut portfolio: Portfolio) -> Portfolio {
     if command == "p" {
         portfolio = algorithms::percentage_change_trigger_algo(portfolio);
     } else if command == "a" {
-        portfolio = algorithms::moving_average_crossover_algo(portfolio);
+        let mut line = String::new();
+        println!("\nEnter save file name:");
+        std::io::stdin()
+            .read_line(&mut line)
+            .expect("Failed to read line");
+        let command = line.trim();
+        log::info!("User entered: {}", command);
+
+        portfolio = algorithms::moving_average_crossover_algo(portfolio, command);
     }
 
     portfolio

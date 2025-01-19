@@ -1,9 +1,12 @@
+use chrono::{Datelike, Duration, Local, NaiveDate};
 use dotenv::dotenv;
 use reqwest::{Error, Response};
 use serde_json::Value;
 use std::collections::hash_set::Difference;
 use std::f64::consts::PI;
 use std::process::exit;
+
+use std::time::Duration as StdDuration;
 use std::{collections::HashMap, env};
 use std::{thread, time};
 use uuid::Uuid;
@@ -158,4 +161,64 @@ pub async fn check_vaild_ticker(ticker: &str) -> Result<bool, String> {
     }
 
     Ok(false)
+}
+
+#[tokio::main]
+pub async fn last_day_market_closed() -> Result<String, String> {
+    dotenv().ok(); // Reads the .env file
+    let api_key = match env::var("FINHUB_API_KEY") {
+        Ok(key) => key, // If the environment variable exists, use its value
+        Err(_) => {
+            eprintln!("Error: API_KEY environment variable not found.");
+            std::process::exit(1); // Exit the program with a non-zero status code
+        }
+    };
+
+    let url =
+        "https://finnhub.io/api/v1/stock/market-holiday?exchange=US&token=".to_owned() + &api_key;
+
+    let response = reqwest::get(&url)
+        .await
+        .map_err(|e| format!("HTTP request failed: {}", e))?
+        .json::<Value>()
+        .await
+        .map_err(|e| format!("Failed to parse JSON: {}", e))?;
+
+    let mut market_holiday_dates: Vec<String> = Vec::new();
+
+    if let Some(data_array) = response.get("data").expect("REASON").as_array() {
+        market_holiday_dates = data_array
+            .iter()
+            .filter_map(|obj| obj.get("atDate").and_then(|date| date.as_str()))
+            .map(|date| date.to_string())
+            .collect();
+    } else {
+        return Err("Failed to find 'data' in reponse".to_string());
+    };
+
+    let mut delta = 1; // Dont CHECK TODAYS DATE
+    let today = Local::now().date_naive();
+
+    loop {
+        let date_to_check = today - Duration::days(delta);
+        let formatted_date = date_to_check.format("%Y-%m-%d").to_string();
+
+        // dbg!(&formatted_date);
+
+        if date_to_check.weekday().num_days_from_monday() >= 5 {
+            //println!("is weekend");
+            delta += 1;
+            continue;
+        }
+
+        if market_holiday_dates.contains(&formatted_date) == false {
+            //println!("vaild trading day");
+            return Ok(formatted_date.clone());
+        } else {
+            // println!("Not weekend, but holiday")
+        }
+
+        delta += 1;
+        thread::sleep(StdDuration::from_secs(1));
+    }
 }

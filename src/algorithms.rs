@@ -40,6 +40,14 @@ fn find_moving_average(days_data: Vec<String>) -> (f32, String) {
 }
 
 fn check_and_if_old_download_new_stock_data(tickers_watching: Vec<&str>) {
+    let last_day_market_was_open = match api::last_day_market_closed() {
+        Ok(value) => value,
+        Err(e) => {
+            eprintln!("error: {}", e);
+            "error".to_string()
+        }
+    };
+
     for ticker in &tickers_watching {
         // Vector containg all file names
         let file_names_in_stock_data_directory: Vec<String> =
@@ -64,14 +72,7 @@ fn check_and_if_old_download_new_stock_data(tickers_watching: Vec<&str>) {
                 let temp: Vec<&str> = last_line.split(':').collect();
                 let date_of_last_line = temp[0];
 
-                let today = Local::now().date_naive();
-                let yesterday = today - Duration::days(1);
-                let today_formatted_date = today.format("%Y-%m-%d").to_string();
-                let yesterday_formatted_date = yesterday.format("%Y-%m-%d").to_string();
-
-                if date_of_last_line == today_formatted_date
-                    || date_of_last_line == yesterday_formatted_date
-                {
+                if date_of_last_line == last_day_market_was_open {
                     file_exisits_and_updated = true;
                     log::info!("ticker: {}, has file and is in data", ticker);
                 } else {
@@ -253,12 +254,30 @@ pub fn percentage_change_trigger_algo(mut portfolio: Portfolio) -> Portfolio {
     }
 }
 
-pub fn moving_average_crossover_algo(mut portfolio: Portfolio) -> Portfolio {
+pub fn moving_average_crossover_algo(mut portfolio: Portfolio, save_file_name: &str) -> Portfolio {
     log::info!("User entered Moving average crossover algorithm");
     //let tickers_to_watch: Vec<&str> = vec!["AMD", "AAPL", "NVDA", "TSLA", "O"];
+
+    let blank_portfolio = Portfolio {
+        cash_balance: 0.0,
+        assets: HashMap::new(),
+        open_trades: Vec::new(),
+    };
+
+    match portfolio_code::load_state_v1(portfolio, save_file_name) {
+        Ok(loaded_portfolio) => {
+            log::info!("Successfully loaded portfolio: {:?}", loaded_portfolio);
+            portfolio = loaded_portfolio;
+        }
+        Err(e) => {
+            log::error!("Failed to load portfolio: {}", e);
+            eprintln!("Failed to load State: {}", e);
+            portfolio = blank_portfolio;
+        }
+    }
+
     let tickers_to_watch: Vec<&str> = vec!["NVDA"];
 
-    todo!("FORCE SAVE FILE");
     // eg name it and it will be used, if it already exists then load it if not create one
 
     portfolio.cash_balance = 1000.0;
@@ -333,6 +352,33 @@ pub fn moving_average_crossover_algo(mut portfolio: Portfolio) -> Portfolio {
     // - all the files exsit
 
     loop {
+        let market_status = match api::is_market_open() {
+            Ok(true) => {
+                log::info!("Succsefully got market status and its: {}", true);
+                "open".to_string()
+            }
+            Ok(false) => {
+                log::info!("Succsefully got market status and its: {}", false);
+                "closed".to_string()
+            }
+            Err(e) => {
+                log::error!(
+                    "An error occurred when trying to fetch market status: {}",
+                    e
+                );
+                println!("An error occurred: {}", e);
+                "An error occurred in fetching status of market".to_string()
+            }
+        };
+
+        while market_status == "closed"
+            || market_status == "An error occurred in fetching status of market"
+        {
+            println!("Waiting (1hr) market is closed");
+            thread::sleep(StdDuration::from_secs(60 * 60)); // wait 1 hour
+            continue;
+        }
+
         check_and_if_old_download_new_stock_data(tickers_to_watch.clone());
         let today = Local::now().date_naive();
         //let yesterday = today - Duration::days(1);
