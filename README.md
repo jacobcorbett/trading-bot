@@ -88,7 +88,7 @@
 ![Main Program Photo](images/main_program_photo.png)
 
 
-This project combines my personal interest in stocks and trading with my goal of enhancing my skills in Rust. Each step of the development process is documented and shared on YouTube in an easy-to-follow series. 
+This project combines my personal interest in stocks and trading with my goal of enhancing my skills in Rust. Each step of the development process is documented and shared on YouTube in an easy-to-follow series.
 
 You can follow along with the entire journey here: [YouTube Playlist](https://www.youtube.com/playlist?list=PLHXKgc2IyVv-QrPcpdF68LgoTbEMS0u6f).
 
@@ -99,7 +99,7 @@ You can follow along with the entire journey here: [YouTube Playlist](https://ww
 <!--
 ### Built With
 
-* 
+*
 * [![React][React.js]][React-url]
 * [![Vue][Vue.js]][Vue-url]
 * [![Angular][Angular.io]][Angular-url]
@@ -124,7 +124,7 @@ Ensure you have the following installed on your system:
 - [Cargo](https://doc.rust-lang.org/cargo/) (comes with Rust)
 - Git (for cloning the repository)
 - You must have a [Finnhub](https://finnhub.io/) and [Alpha Vantage](https://www.alphavantage.co/) API key, In the format belwow in a .env file in root.
-  
+
   ```text
   FINHUB_API_KEY=key
   ALPHA_API_KEY=key
@@ -153,31 +153,31 @@ Ensure you have the following installed on your system:
 
 Below are examples of how to use the trading bot, along with screenshots showcasing key features.
 
-### 1. Opening a Trade  
-Start by opening a new trade using the bot's intuitive command-line interface.  
+### 1. Opening a Trade
+Start by opening a new trade using the bot's intuitive command-line interface.
 ![Opening a Trade](images/opening-trade.png)
 
-### 2. Adding Money  
-Easily manage your trading balance by adding funds as needed.  
+### 2. Adding Money
+Easily manage your trading balance by adding funds as needed.
 ![Adding Money](images/adding-money.png)
 
-### 3. Algorithm Mode  
-Switch to algorithm mode to let the bot trade automatically based on pre-defined strategies.  
+### 3. Algorithm Mode
+Switch to algorithm mode to let the bot trade automatically based on pre-defined strategies.
 ![Algorithm Mode](images/algorithm-mode.png)
 
-### 4. Checking the Status of Trades  
-View the status of all your trades in real time to stay on top of your portfolio.  
+### 4. Checking the Status of Trades
+View the status of all your trades in real time to stay on top of your portfolio.
 ![Status of All Trades](images/status-of-all-trades.png)
 
-### 5. Saving and Loading States  
-Save your current trading state to resume later, or load a previously saved state.  
-- **Saving State:**  
-  ![Saving State](images/Saving-state.png)  
-- **Loading State:**  
+### 5. Saving and Loading States
+Save your current trading state to resume later, or load a previously saved state.
+- **Saving State:**
+  ![Saving State](images/Saving-state.png)
+- **Loading State:**
   ![Loading State](images/loading-state.png)
 
-### 6. Main Program View  
-Get a clear overview of the main program and its functionality.  
+### 6. Main Program View
+Get a clear overview of the main program and its functionality.
 ![Main Program Photo](images/main_program_photo.png)
 
 These features make the bot flexible and user-friendly, whether you're trading manually or automating your strategies.
@@ -204,17 +204,17 @@ These features make the bot flexible and user-friendly, whether you're trading m
 - [x] Analyzed stock history data to implement the moving average algorithm.
 - [x] Saved all stock moving averages into a vector for easier data management.
 - [x] Set up the algorithm to run daily, checking for updates automatically.
+- [x] Optimize data fetching to only retrieve new stock data when needed.
+- [x] Calculate moving averages "back in time" to avoid starting fresh with new data.
+- [x] Finish implementing the logic to detect when the moving average crosses the 50-day average and trigger trades accordingly.
 
 ### Planned Features
 - [ ] Add support for cryptocurrency data.
-- [ ] Optimize data fetching to only retrieve new stock data when needed.
 - [ ] Update the algorithm to:
   - Allow auto-save functionality in algorithm mode.
   - Stop operations when the market closes.
 - [ ] Enhance the interface with improved graphics and a user-friendly design.
 - [ ] Update the save file to include historical moving averages or create a dedicated save file for this data.
-- [ ] Calculate moving averages "back in time" to avoid starting fresh with new data.
-- [ ] Finish implementing the logic to detect when the moving average crosses the 50-day average and trigger trades accordingly.
 
 
 See the [open issues](https://github.com/jacobcorbett/trading-bot/issues) for a full list of proposed features (and known issues).
@@ -266,7 +266,7 @@ Project Link: [https://github.com/jacobcorbett/trading-bot](https://github.com/j
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 
-<!-- 
+<!--
 
 ## Acknowledgments
 
@@ -308,4 +308,4 @@ Project Link: [https://github.com/jacobcorbett/trading-bot](https://github.com/j
 [Bootstrap.com]: https://img.shields.io/badge/Bootstrap-563D7C?style=for-the-badge&logo=bootstrap&logoColor=white
 [Bootstrap-url]: https://getbootstrap.com
 [JQuery.com]: https://img.shields.io/badge/jQuery-0769AD?style=for-the-badge&logo=jquery&logoColor=white
-[JQuery-url]: https://jquery.com 
+[JQuery-url]: https://jquery.com
