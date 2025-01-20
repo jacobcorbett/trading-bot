@@ -40,11 +40,7 @@ fn main() {
 
     log::info!("Program started");
 
-    let mut main_portfolio = Portfolio {
-        cash_balance: 0.0,
-        assets: HashMap::new(),
-        open_trades: Vec::new(),
-    };
+    let mut main_portfolio = portfolio_code::blank_portfolio();
     log::info!("Created main_portfolio: {:?}", main_portfolio);
 
     // let x = api::get_20_years_old_historial_data("AAPL");

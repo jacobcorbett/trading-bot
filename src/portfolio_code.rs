@@ -13,15 +13,23 @@ use std::io::BufReader;
 use std::path::Path;
 use std::process::exit;
 use std::{collections::HashMap, env};
-
 use std::{thread, time};
+use tempfile::tempdir;
 use uuid::Uuid;
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct Portfolio {
     pub cash_balance: f32,
     pub assets: HashMap<String, f32>,
     pub open_trades: Vec<trade_position>,
+}
+
+pub fn blank_portfolio() -> Portfolio {
+    return Portfolio {
+        cash_balance: 0.0,
+        assets: HashMap::new(),
+        open_trades: Vec::new(),
+    };
 }
 
 pub fn lines_from_file(filename: impl AsRef<Path>) -> Vec<String> {
@@ -291,4 +299,139 @@ pub fn load_state_v1(mut portfolio: Portfolio, file_name: &str) -> Result<Portfo
     } else {
         Err("not version 1.0".to_string())
     }
+}
+
+#[test]
+fn creating_blank_portfolio() {
+    let result = blank_portfolio();
+
+    assert_eq!(
+        result,
+        Portfolio {
+            cash_balance: 0.0,
+            assets: HashMap::new(),
+            open_trades: Vec::new(),
+        }
+    );
+}
+
+#[test]
+fn reading_lines_from_file() {
+    let file_dir = "./testing_files/test_read_lines.txt";
+
+    let file_data_vector = lines_from_file(file_dir);
+    assert_eq!("I love pizza", file_data_vector[0]);
+    assert_eq!("cats and dogs", file_data_vector[1]);
+}
+
+#[test]
+fn getting_all_files_in_directory() {
+    let dir = "./testing_files/";
+
+    let expected_files = vec!["test_read_lines.txt".to_string()];
+
+    match get_files_in_directory(dir) {
+        Ok(temp) => {
+            for expected in &expected_files {
+                assert!(
+                    temp.contains(expected),
+                    "The directory does not contain the expected file: '{}'.",
+                    expected
+                );
+            }
+        }
+        Err(err) => panic!("Failed to get files in directory: {}", err),
+    }
+}
+
+#[test]
+fn test_updating_cash_balance() {
+    let mut portfolio = blank_portfolio();
+    assert_eq!(
+        portfolio.cash_balance, 0.0,
+        "Initial cash balance should be 0.0"
+    );
+
+    portfolio = update_cash_balance(portfolio, 100.0);
+    assert_eq!(
+        portfolio.cash_balance, 100.0,
+        "Cash balance should update to 100.0"
+    );
+
+    portfolio = update_cash_balance(portfolio, -200.0);
+    assert_eq!(
+        portfolio.cash_balance, -100.0,
+        "Cash balance should update to -100.0"
+    );
+
+    portfolio = update_cash_balance(portfolio, 50.0);
+    assert_eq!(
+        portfolio.cash_balance, -50.0,
+        "Cash balance should update to -50.0"
+    );
+
+    portfolio = update_cash_balance(portfolio, 150.0);
+    assert_eq!(
+        portfolio.cash_balance, 100.0,
+        "Cash balance should update to 100.0"
+    );
+
+    portfolio = update_cash_balance(portfolio, -100.0);
+    assert_eq!(
+        portfolio.cash_balance, 0.0,
+        "Cash balance should update back to 0.0"
+    );
+
+    portfolio = update_cash_balance(portfolio, 500.0);
+    assert_eq!(
+        portfolio.cash_balance, 500.0,
+        "Cash balance should update to 500.0"
+    );
+
+    portfolio = update_cash_balance(portfolio, -750.0);
+    assert_eq!(
+        portfolio.cash_balance, -250.0,
+        "Cash balance should update to -250.0"
+    );
+}
+
+#[test]
+fn test_save_state() {
+    // Set the directory path where we want to save the file
+    let save_dir = "./save_states/";
+
+    // Create the portfolio and trade_position
+    let trade = trade_position {
+        uuid: Uuid::new_v4(),
+        ticker: "AAPL".to_string(),
+        size: 10.0,
+        open_price: 150.0,
+        close_price: 155.0,
+        inital_value: 1500.0,
+    };
+
+    let mut portfolio = blank_portfolio();
+    portfolio.open_trades.push(trade);
+    portfolio.cash_balance = 1000.0;
+
+    // Mock the file saving by calling the function
+    let portfolio = save_state(portfolio, "test_save");
+
+    // Now, check if the file exists in the temp directory
+    let file_path = save_dir.to_owned() + "test_save.txt";
+    let file_content = fs::read_to_string(file_path.clone()).expect("Failed to read file");
+
+    // Assert the file content is correct
+    assert!(file_content.contains("version:1.0"));
+    assert!(file_content.contains("cash_balance:1000"));
+    assert!(file_content.contains("number_of_open_trades:1"));
+    assert!(file_content.contains("open_trade:0"));
+    assert!(file_content.contains("uuid:"));
+    assert!(file_content.contains("ticker:AAPL"));
+    assert!(file_content.contains("size:10"));
+    assert!(file_content.contains("open_price:150"));
+    assert!(file_content.contains("close_price:155"));
+    assert!(file_content.contains("inital_value:1500"));
+
+    fs::remove_file(file_path.clone()).expect("Failed to delete file");
 }

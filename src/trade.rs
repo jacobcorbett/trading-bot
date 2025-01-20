@@ -11,7 +11,7 @@ use uuid::Uuid;
 use crate::api;
 use crate::portfolio_code::Portfolio;
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct trade_position {
     pub uuid: Uuid,
     pub ticker: String,

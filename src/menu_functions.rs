@@ -214,11 +214,7 @@ pub fn load_state_menu_function(mut portfolio: Portfolio) -> Portfolio {
     let file_name = line.trim();
     log::info!("User entered file to load state from: {}", file_name);
 
-    let blank_portfolio = Portfolio {
-        cash_balance: 0.0,
-        assets: HashMap::new(),
-        open_trades: Vec::new(),
-    };
+    let blank_portfolio = portfolio_code::blank_portfolio();
 
     match portfolio_code::load_state_v1(portfolio, file_name) {
         Ok(loaded_portfolio) => {
