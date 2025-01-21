@@ -276,7 +276,7 @@ pub fn moving_average_crossover_algo(mut portfolio: Portfolio, save_file_name: &
         }
     }
 
-    let tickers_to_watch: Vec<&str> = vec!["NVDA"];
+    let tickers_to_watch: Vec<&str> = vec!["NVDA", "AMD", "TSLA"];
 
     // eg name it and it will be used, if it already exists then load it if not create one
 
@@ -304,9 +304,9 @@ pub fn moving_average_crossover_algo(mut portfolio: Portfolio, save_file_name: &
     //
     // 3, Create the inital 4, data points for the moving average
 
-    for ticker in &tickers_to_watch {
+    for stock in &mut historical_stock_data {
         let all_data_lines =
-            portfolio_code::lines_from_file("./stock_data/".to_owned() + ticker + ".txt");
+            portfolio_code::lines_from_file("./stock_data/".to_owned() + &stock.ticker + ".txt");
 
         let history_offsets: Vec<usize> = (0..2).collect();
 
@@ -325,22 +325,21 @@ pub fn moving_average_crossover_algo(mut portfolio: Portfolio, save_file_name: &
                     .to_vec()
             })
             .collect();
-        for stock in &mut historical_stock_data {
-            // push 50 day averages
-            for history in &fifty_days_histories {
-                let (average, date) = find_moving_average(history.clone());
-                stock
-                    .fifty_day_moving_averages
-                    .push(moving_average { average, date })
-            }
 
-            // push 10 day averages
-            for history in &ten_days_histories {
-                let (average, date) = find_moving_average(history.clone());
-                stock
-                    .ten_day_moving_averages
-                    .push(moving_average { average, date })
-            }
+        // push 50 day averages
+        for history in &fifty_days_histories {
+            let (average, date) = find_moving_average(history.clone());
+            stock
+                .fifty_day_moving_averages
+                .push(moving_average { average, date })
+        }
+
+        // push 10 day averages
+        for history in &ten_days_histories {
+            let (average, date) = find_moving_average(history.clone());
+            stock
+                .ten_day_moving_averages
+                .push(moving_average { average, date })
         }
     }
     // End 3
@@ -371,13 +370,13 @@ pub fn moving_average_crossover_algo(mut portfolio: Portfolio, save_file_name: &
             }
         };
 
-        while market_status == "closed"
-            || market_status == "An error occurred in fetching status of market"
-        {
-            println!("Waiting (1hr) market is closed");
-            thread::sleep(StdDuration::from_secs(60 * 60)); // wait 1 hour
-            continue;
-        }
+        // while market_status == "closed"
+        //     || market_status == "An error occurred in fetching status of market"
+        // {
+        //     println!("Waiting (1hr) market is closed");
+        //     thread::sleep(StdDuration::from_secs(60 * 60)); // wait 1 hour
+        //     continue;
+        // }
 
         check_and_if_old_download_new_stock_data(tickers_to_watch.clone());
         let today = Local::now().date_naive();
@@ -386,11 +385,14 @@ pub fn moving_average_crossover_algo(mut portfolio: Portfolio, save_file_name: &
         // let yesterday_formatted_date = yesterday.format("%Y-%m-%d").to_string();
 
         for stock in &historical_stock_data {
+            dbg!(stock);
             for i in 1..stock.fifty_day_moving_averages.len() {
-                println!("Bullish? ({}): Prev 10-day: {} < Prev 50-day: {} and current 10-day: {} > current 50-day: {}",
+                println!("{} Bullish? ({}): Prev 10-day: {} < Prev 50-day: {} and ({}) current 10-day: {} > current 50-day: {}",
+                    stock.ticker,
                     stock.ten_day_moving_averages[i].date,
                     stock.ten_day_moving_averages[i-1].average,
                     stock.fifty_day_moving_averages[i-1].average,
+                    stock.ten_day_moving_averages[i].date,
                     stock.ten_day_moving_averages[i].average,
                     stock.fifty_day_moving_averages[i].average);
 
@@ -415,10 +417,12 @@ pub fn moving_average_crossover_algo(mut portfolio: Portfolio, save_file_name: &
                     )
                 }
 
-                println!("Bearish? ({}): Prev 10-day: {} > Prev 50-day: {} and current 10-day: {} < current 50-day: {}",
-                    stock.ten_day_moving_averages[i].date,
+                println!("{} Bearish? ({}): Prev 10-day: {} > Prev 50-day: {} and ({}) current 10-day: {} < current 50-day: {}",
+                    stock.ticker,
+                    stock.ten_day_moving_averages[i-1].date,
                     stock.ten_day_moving_averages[i-1].average,
                     stock.fifty_day_moving_averages[i-1].average,
+                    stock.ten_day_moving_averages[i].date,
                     stock.ten_day_moving_averages[i].average,
                     stock.fifty_day_moving_averages[i].average);
 
@@ -444,10 +448,10 @@ pub fn moving_average_crossover_algo(mut portfolio: Portfolio, save_file_name: &
             }
 
             // thread::sleep(StdDuration::from_secs(24 * 60 * 60)); // Wait for 24 hours
-            thread::sleep(StdDuration::from_secs(60 * 60)); // wait 1 hour
 
             // update all the stocks info
             //
         }
+        thread::sleep(StdDuration::from_secs(60 * 60)); // wait 1 hour
     }
 }
