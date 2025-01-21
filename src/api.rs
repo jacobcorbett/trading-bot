@@ -196,7 +196,7 @@ pub async fn last_day_market_closed() -> Result<String, String> {
         return Err("Failed to find 'data' in reponse".to_string());
     };
 
-    let mut delta = 1; // Dont CHECK TODAYS DATE
+    let mut delta = 0;
     let today = Local::now().date_naive();
 
     loop {
