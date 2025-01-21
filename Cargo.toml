@@ -13,6 +13,12 @@ log = "0.4.24"
 flexi_logger = "0.29.8"
 chrono = "0.4.39"
 tempfile = "3.15.0"
+sqlx = { version = "0.8.2", features = [
+    "postgres",
+    "runtime-tokio-native-tls",
+] }
+futures = "0.3"
+
 
 [dependencies.uuid]
 version = "1.11.0"

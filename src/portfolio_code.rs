@@ -12,6 +12,7 @@ use std::io::BufRead;
 use std::io::BufReader;
 use std::path::Path;
 use std::process::exit;
+use std::time::Duration;
 use std::{collections::HashMap, env};
 use std::{thread, time};
 use tempfile::tempdir;
@@ -317,6 +318,7 @@ fn creating_blank_portfolio() {
 
 #[test]
 fn reading_lines_from_file() {
+    // TODO create own file and then delete it
     let file_dir = "./testing_files/test_read_lines.txt";
 
     let file_data_vector = lines_from_file(file_dir);
